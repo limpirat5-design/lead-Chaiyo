@@ -946,6 +946,9 @@ function renderDashboard() {
   const winRateProgress = document.getElementById("kpiWinRateProgress");
   if (winRateProgress) winRateProgress.style.width = `${Math.min(winRate, 100)}%`;
 
+  // 🎯 Update Monthly Sales Target Progress Gauge
+  updateMonthlyTargetGauge(customerDataList);
+
   // Mini Vehicle Stats Grid
   const vehicleStatsContainer = document.getElementById("vehicleMiniStats");
   if (vehicleStatsContainer) {
@@ -1435,4 +1438,107 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+/* =========================================================================
+   🎯 MONTHLY SALES TARGET MANAGEMENT
+   ========================================================================= */
+const STORAGE_KEY_TARGET = "CHAIYO_MONTHLY_TARGET";
+const DEFAULT_TARGET = 3000000; // 3,000,000 บาท
+
+function getMonthlyTarget() {
+  return Number(localStorage.getItem(STORAGE_KEY_TARGET)) || DEFAULT_TARGET;
+}
+
+function openTargetModal() {
+  const currentTarget = getMonthlyTarget();
+  const input = document.getElementById("monthlyTargetInput");
+  if (input) input.value = currentTarget;
+  document.getElementById("targetModal")?.classList.remove("hidden");
+  initLucideIcons();
+}
+
+function closeTargetModal() {
+  document.getElementById("targetModal")?.classList.add("hidden");
+}
+
+function setQuickTarget(amount) {
+  const input = document.getElementById("monthlyTargetInput");
+  if (input) input.value = amount;
+}
+
+function saveMonthlyTarget() {
+  const input = document.getElementById("monthlyTargetInput");
+  const val = Number(input?.value);
+  if (val && val > 0) {
+    localStorage.setItem(STORAGE_KEY_TARGET, val);
+    showToast(`✅ บันทึกเป้าหมาย ${val.toLocaleString()} บาท เรียบร้อยแล้ว!`);
+    closeTargetModal();
+    renderDashboard();
+  } else {
+    alert("กรุณาระบุจำนวนเงินเป้าหมายที่ถูกต้อง");
+  }
+}
+
+function updateMonthlyTargetGauge(dataset = customerDataList) {
+  const targetGoal = getMonthlyTarget();
+  
+  // คำนวณยอดอนุมัติประจำเดือนปัจจุบัน
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  
+  let approvedThisMonth = 0;
+  dataset.forEach(item => {
+    if (item.status === "อนุมัติ/รับเงินแล้ว" && item.createdAt) {
+      try {
+        const d = new Date(item.createdAt.replace(" ", "T"));
+        if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+          approvedThisMonth += Number(item.amount) || 0;
+        }
+      } catch(e){}
+    }
+  });
+
+  const percent = targetGoal > 0 ? ((approvedThisMonth / targetGoal) * 100) : 0;
+  const remaining = Math.max(0, targetGoal - approvedThisMonth);
+
+  const goalText = document.getElementById("targetGoalText");
+  const approvedText = document.getElementById("targetApprovedText");
+  const percentText = document.getElementById("targetPercentText");
+  const remainingText = document.getElementById("targetRemainingText");
+  const progressBar = document.getElementById("targetProgressBar");
+  const badgeMsg = document.getElementById("targetBadgeMsg");
+
+  if (goalText) goalText.textContent = `${targetGoal.toLocaleString()} บาท`;
+  if (approvedText) approvedText.textContent = `${approvedThisMonth.toLocaleString()} บาท`;
+  if (percentText) percentText.textContent = `(${percent.toFixed(1)}%)`;
+
+  if (remainingText) {
+    if (remaining === 0) {
+      remainingText.innerHTML = `🎉 <span class="text-emerald-700 font-black">ทะลุเป้าหมายแล้ว +${(approvedThisMonth - targetGoal).toLocaleString()} บาท</span>`;
+    } else {
+      remainingText.textContent = `เหลืออีก ${remaining.toLocaleString()} บาท ถึงเป้าหมาย`;
+    }
+  }
+
+  if (progressBar) {
+    progressBar.style.width = `${Math.min(percent, 100)}%`;
+  }
+
+  if (badgeMsg) {
+    if (percent >= 100) {
+      badgeMsg.className = "px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm flex items-center gap-1.5";
+      badgeMsg.innerHTML = "<span>🏆 ทะลุเป้าหมาย 100%!</span>";
+    } else if (percent >= 80) {
+      badgeMsg.className = "px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-sm flex items-center gap-1.5";
+      badgeMsg.innerHTML = "<span>🔥 ใกล้ถึงเป้าหมายแล้ว!</span>";
+    } else if (percent >= 50) {
+      badgeMsg.className = "px-3 py-1 rounded-full text-xs font-black bg-sky-100 text-sky-900 border border-sky-300 shadow-sm flex items-center gap-1.5";
+      badgeMsg.innerHTML = "<span>🚀 เกินครึ่งทางแล้ว ลุยต่อ!</span>";
+    } else {
+      badgeMsg.className = "px-3 py-1 rounded-full text-xs font-black bg-orange-100 text-orange-800 border border-orange-200 shadow-sm flex items-center gap-1.5";
+      badgeMsg.innerHTML = "<span>⚡ ลุยเคสให้เต็มที่!</span>";
+    }
+  }
 }

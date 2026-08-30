@@ -27,26 +27,261 @@ const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "�
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
 /**
- * ⏰ ฟังก์ชันตั้งเวลาส่งรายงานอัตโนมัติทุกวันเวลา 17:00 น.
- * (เลือกฟังก์ชันนี้แล้วกด "เรียกใช้" / "Run ▶️" เพียง 1 ครั้งเพื่อเปิดระบบส่งออโต้)
+ * ⏰ ฟังก์ชันตั้งเวลาส่งสรุปและแจ้งเตือนอัตโนมัติประจำวัน
+ * 1) 08:30 น. - แจ้งเตือนรายชื่อลูกค้าที่ต้องโทรติดตามวันนี้
+ * 2) 17:00 น. - สรุปผลงานประจำวัน
  */
-function create1700DailyTrigger() {
-  // ลบ Trigger เดิมออกก่อน
+function createDailyTriggers() {
+  // ลบ Trigger เดิมทั้งหมดออกก่อน
   const triggers = ScriptApp.getProjectTriggers();
   triggers.forEach(t => {
-    if (t.getHandlerFunction() === "sendDailySummaryToLine") {
+    const fn = t.getHandlerFunction();
+    if (fn === "sendDailySummaryToLine" || fn === "sendMorningFollowUpToLine") {
       ScriptApp.deleteTrigger(t);
     }
   });
 
-  // สร้าง Trigger ใหม่ให้รันทุกวันช่วง 17:00 - 18:00 น.
+  // 1. สร้าง Trigger ตอนเช้า 08:00 - 09:00 น.
+  ScriptApp.newTrigger("sendMorningFollowUpToLine")
+    .timeBased()
+    .everyDays(1)
+    .atHour(8)
+    .create();
+
+  // 2. สร้าง Trigger สรุปตอนเย็น 17:00 - 18:00 น.
   ScriptApp.newTrigger("sendDailySummaryToLine")
     .timeBased()
     .everyDays(1)
     .atHour(17)
     .create();
 
-  Logger.log("✅ ตั้งเวลาส่งสรุปประจำวันทุก 17:00 น. เรียบร้อยแล้ว!");
+  Logger.log("✅ ตั้งเวลาแจ้งเตือนเช้า 08:30 น. และสรุปเย็น 17:00 น. เรียบร้อยแล้ว!");
+}
+
+function create1700DailyTrigger() {
+  createDailyTriggers();
+}
+
+/**
+ * 🌅 ฟังก์ชันส่งแจ้งเตือนรายชื่อลูกค้าที่ต้องติดตามตอนเช้า (08:30 น.)
+ */
+function sendMorningFollowUpToLine() {
+  const sheet = getOrCreateSheet();
+  const customers = fetchAllCustomersList(sheet);
+  const now = new Date();
+  const dateThai = `${now.getDate()} ${THAI_MONTHS[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+
+  // กรองเฉพาะลูกค้าที่ต้องติดตาม (นัดหมายเข้าสาขา / รอครบ 90 วัน / พึ่งโอน)
+  const followUpList = [];
+  customers.forEach(c => {
+    if (c.status === "นัดหมายเข้าสาขา" || c.status.includes("90 วัน") || c.status.includes("ติดตาม") || c.status.includes("ติดต่ออีกครั้ง")) {
+      followUpList.push(c);
+    }
+  });
+
+  if (followUpList.length === 0) {
+    Logger.log("ไม่มีลูกค้าที่ต้องติดตามในวันนี้");
+    return;
+  }
+
+  // ดึง 4 รายชื่อแรกมาแสดงในการ์ด
+  const topList = followUpList.slice(0, 4);
+  const rowsContents = [];
+
+  topList.forEach((cust, idx) => {
+    const cleanPhone = String(cust.phone || '').replace(/[^0-9]/g, '');
+    rowsContents.push({
+      type: "box",
+      layout: "vertical",
+      backgroundColor: idx % 2 === 0 ? "#F8FAFC" : "#FFFFFF",
+      cornerRadius: "10px",
+      paddingAll: "10px",
+      margin: "xs",
+      contents: [
+        {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            {
+              type: "text",
+              text: `${idx + 1}. 👤 ${cust.name || 'ลูกค้า'}`,
+              size: "xs",
+              weight: "bold",
+              color: "#0F172A",
+              flex: 4,
+              wrap: true
+            },
+            {
+              type: "text",
+              text: `${Number(cust.amount).toLocaleString()} บ.`,
+              size: "xs",
+              weight: "bold",
+              color: "#FF6B00",
+              align: "end",
+              flex: 3
+            }
+          ]
+        },
+        {
+          type: "box",
+          layout: "horizontal",
+          margin: "xs",
+          contents: [
+            {
+              type: "text",
+              text: `🚗 ${cust.vehicleType} • 📞 ${cust.phone || '-'}`,
+              size: "xxs",
+              color: "#64748B",
+              flex: 1
+            }
+          ]
+        },
+        {
+          type: "box",
+          layout: "horizontal",
+          margin: "xxs",
+          contents: [
+            {
+              type: "text",
+              text: `📌 สถานะ: ${cust.status}`,
+              size: "xxs",
+              color: cust.status === "นัดหมายเข้าสาขา" ? "#0284C7" : "#D97706",
+              weight: "bold"
+            }
+          ]
+        }
+      ]
+    });
+  });
+
+  const flexBubble = {
+    type: "bubble",
+    size: "mega",
+    body: {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "16px",
+      backgroundColor: "#FFFFFF",
+      contents: [
+        {
+          type: "box",
+          layout: "horizontal",
+          backgroundColor: "#0284C7",
+          cornerRadius: "14px",
+          paddingAll: "12px",
+          contents: [
+            {
+              type: "box",
+              layout: "vertical",
+              flex: 3,
+              contents: [
+                {
+                  type: "text",
+                  text: "🌅 ภารกิจติดตามเช้านี้!",
+                  color: "#FFFFFF",
+                  weight: "bold",
+                  size: "md"
+                },
+                {
+                  type: "text",
+                  text: `สาขาเขาช่องพราน • ${dateThai}`,
+                  color: "#E0F2FE",
+                  size: "xxs",
+                  margin: "xs"
+                }
+              ]
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              backgroundColor: "#FF6B00",
+              cornerRadius: "12px",
+              paddingStart: "10px",
+              paddingEnd: "10px",
+              paddingTop: "4px",
+              paddingBottom: "4px",
+              justifyContent: "center",
+              alignItems: "center",
+              contents: [
+                {
+                  type: "text",
+                  text: `${followUpList.length} ราย`,
+                  color: "#FFFFFF",
+                  weight: "bold",
+                  size: "xs"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          type: "box",
+          layout: "vertical",
+          margin: "md",
+          contents: [
+            {
+              type: "text",
+              text: `🎯 วันนี้มีลูกค้าต้องโทรติดตามทั้งหมด ${followUpList.length} รายการ:`,
+              weight: "bold",
+              size: "xs",
+              color: "#0F172A"
+            }
+          ]
+        },
+        {
+          type: "box",
+          layout: "vertical",
+          margin: "sm",
+          contents: rowsContents
+        },
+        {
+          type: "separator",
+          margin: "md"
+        },
+        {
+          type: "text",
+          text: `💪 โทรหาลูกค้าตั้งแต่เช้า ปิดยอดได้ไว ลุยเลยครับทีมงาน! 🏆`,
+          color: "#475569",
+          size: "xs",
+          weight: "bold",
+          margin: "sm",
+          align: "center"
+        }
+      ]
+    },
+    footer: {
+      type: "box",
+      layout: "horizontal",
+      spacing: "sm",
+      paddingAll: "12px",
+      backgroundColor: "#F8FAFC",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#FF6B00",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: "📱 เปิดดูรายชื่อทั้งหมด",
+            uri: WEB_APP_URL
+          }
+        }
+      ]
+    }
+  };
+
+  sendLineFlexPayload(
+    `🌅 [ภารกิจติดตามเช้านี้] มีลูกค้าต้องติดตาม ${followUpList.length} รายการ (สาขาเขาช่องพราน)`,
+    flexBubble
+  );
+}
+
+/**
+ * 🧪 ทดสอบส่งแจ้งเตือนเช้า 08:30 น. ทันที
+ */
+function testSendMorningFollowUp() {
+  sendMorningFollowUpToLine();
 }
 
 /**
