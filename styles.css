@@ -1,0 +1,591 @@
+/* ==========================================================================
+   Pure Neumorphism (Soft UI) - "Chaiyo Dynamic Fusion" Theme
+   Palette: Sunset Orange (#ff6b00), Electric Cyan/Blue (#0284c7), 
+            Obsidian Black (#0b0f19), Pearl White (#ffffff)
+   Canvas: #e6edf5 | Ultra High-Contrast & Smooth Spring Micro-Interactions
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
+
+:root {
+  /* Chaiyo Dynamic Fusion Canvas */
+  --neu-bg: #e6edf5;
+  --neu-light: #ffffff;
+  --neu-dark: #b4c2d4;
+  --neu-shadow-deep: #a4b3c7;
+  
+  /* Primary Theme Accents */
+  --sunset-orange: #ff6b00;
+  --sunset-orange-light: #ff8833;
+  --sunset-orange-glow: rgba(255, 107, 0, 0.35);
+  
+  --electric-blue: #0284c7;
+  --electric-blue-light: #0ea5e9;
+  --electric-blue-glow: rgba(2, 132, 199, 0.3);
+  
+  --obsidian-black: #0b0f19;
+  --text-muted: #475569;
+  --pearl-white: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Prompt', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--neu-bg);
+  color: var(--obsidian-black);
+  min-height: 100vh;
+  letter-spacing: -0.01em;
+  touch-action: manipulation;
+}
+
+/* --------------------------------------------------------------------------
+   Pure Neumorphic Card Elevations (Chaiyo Dynamic Fusion)
+   -------------------------------------------------------------------------- */
+.neu-card {
+  background: var(--neu-bg);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 7px 7px 18px var(--neu-dark), 
+             -7px -7px 18px var(--neu-light);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              box-shadow 0.2s ease;
+}
+
+.neu-card:hover {
+  box-shadow: 9px 9px 22px var(--neu-dark), 
+             -9px -9px 22px var(--neu-light);
+}
+
+.neu-card-sm {
+  background: var(--neu-bg);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 4px 4px 11px var(--neu-dark), 
+             -4px -4px 11px var(--neu-light);
+  transition: all 0.2s ease;
+}
+
+/* Neumorphic Inset Groove Track */
+.neu-track {
+  background: var(--neu-bg);
+  border-radius: 16px;
+  box-shadow: inset 3px 3px 6px var(--neu-shadow-deep), 
+              inset -3px -3px 6px var(--neu-light);
+  border: 1px solid #cbd5e1;
+  padding: 0.25rem;
+}
+
+/* Dynamic Sunset Orange Banner */
+.neu-card-sunset {
+  background: linear-gradient(140deg, #e6edf5 0%, #ffedd5 65%, #fed7aa 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 107, 0, 0.45);
+  box-shadow: 7px 7px 18px var(--neu-dark), 
+             -7px -7px 18px var(--neu-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.neu-card-sunset::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 45%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 55%
+  );
+  transform: rotate(30deg);
+  animation: shimmer 6s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(30deg); }
+  20%, 100% { transform: translateX(100%) rotate(30deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Neumorphic Executive KPI Cards (Dashboard)
+   -------------------------------------------------------------------------- */
+.kpi-card {
+  background: var(--neu-bg);
+  border-radius: 20px;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 6px 6px 16px var(--neu-dark), 
+             -6px -6px 16px var(--neu-light);
+  padding: 1.25rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 8px 8px 20px var(--neu-dark), 
+             -8px -8px 20px var(--neu-light);
+}
+
+.kpi-card .kpi-icon-well {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 2.5px 2.5px 5px var(--neu-shadow-deep), 
+              inset -2.5px -2.5px 5px var(--neu-light);
+  flex-shrink: 0;
+}
+
+/* Progress bar inside KPI */
+.neu-progress-bg {
+  background: var(--neu-bg);
+  border-radius: 9999px;
+  box-shadow: inset 2px 2px 4px var(--neu-shadow-deep), 
+              inset -2px -2px 4px var(--neu-light);
+  height: 8px;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.neu-progress-fill-orange {
+  background: linear-gradient(90deg, #ff8833, #ff6b00);
+  height: 100%;
+  border-radius: 9999px;
+  box-shadow: 0 0 8px var(--sunset-orange-glow);
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.neu-progress-fill-blue {
+  background: linear-gradient(90deg, #38bdf8, #0284c7);
+  height: 100%;
+  border-radius: 9999px;
+  box-shadow: 0 0 8px var(--electric-blue-glow);
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.neu-progress-fill-green {
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+  height: 100%;
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --------------------------------------------------------------------------
+   Custom Neumorphic Vehicle Type Selector Cards
+   -------------------------------------------------------------------------- */
+.vehicle-type-btn {
+  background: var(--neu-bg);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 4px 4px 11px var(--neu-dark), 
+             -4px -4px 11px var(--neu-light);
+  padding: 0.85rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+}
+
+.vehicle-type-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 14px var(--neu-dark), 
+             -6px -6px 14px var(--neu-light);
+  border-color: rgba(255, 107, 0, 0.4);
+}
+
+.vehicle-type-btn .icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--neu-bg);
+  box-shadow: inset 2px 2px 5px var(--neu-shadow-deep), 
+              inset -2px -2px 5px var(--neu-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--electric-blue);
+  transition: all 0.2s ease;
+}
+
+.vehicle-type-btn .label-text {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--obsidian-black);
+  line-height: 1.2;
+}
+
+.vehicle-type-btn .sub-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.vehicle-type-btn.active {
+  background: linear-gradient(145deg, #e6edf5 0%, #ffedd5 100%);
+  border-color: var(--sunset-orange);
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light),
+              0 0 12px var(--sunset-orange-glow);
+  transform: translateY(1px);
+}
+
+.vehicle-type-btn.active .icon-box {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8833 100%);
+  color: #ffffff;
+  box-shadow: 2px 2px 6px rgba(255, 107, 0, 0.4);
+}
+
+.vehicle-type-btn.active .label-text {
+  color: #c2410c;
+}
+
+.vehicle-type-btn.active .sub-label {
+  color: #ea580c;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Custom Neumorphic Status Option Cards (Soft UI Status Grid)
+   -------------------------------------------------------------------------- */
+.status-choice-btn {
+  background: var(--neu-bg);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  box-shadow: 4px 4px 10px var(--neu-dark), 
+             -4px -4px 10px var(--neu-light);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: left;
+}
+
+.status-choice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 14px var(--neu-dark), 
+             -6px -6px 14px var(--neu-light);
+}
+
+.status-choice-btn .status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 2px 2px 4px var(--neu-shadow-deep), 
+              inset -2px -2px 4px var(--neu-light);
+  transition: all 0.2s ease;
+}
+
+.status-choice-btn .title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--obsidian-black);
+  line-height: 1.25;
+}
+
+.status-choice-btn .desc {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+/* Status 1: นัดหมายเข้าสาขา (Active Blue) */
+.status-choice-btn.type-appoint.active {
+  background: linear-gradient(145deg, #e6edf5 0%, #e0f2fe 100%);
+  border-color: var(--electric-blue);
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light),
+              0 0 12px var(--electric-blue-glow);
+}
+.status-choice-btn.type-appoint.active .status-icon {
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  color: #ffffff;
+}
+.status-choice-btn.type-appoint.active .title { color: #0369a1; }
+
+/* Status 2: ติดต่ออีกครั้ง 90 วัน (Active Orange) */
+.status-choice-btn.type-callback.active {
+  background: linear-gradient(145deg, #e6edf5 0%, #ffedd5 100%);
+  border-color: var(--sunset-orange);
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light),
+              0 0 12px var(--sunset-orange-glow);
+}
+.status-choice-btn.type-callback.active .status-icon {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8833 100%);
+  color: #ffffff;
+}
+.status-choice-btn.type-callback.active .title { color: #c2410c; }
+
+/* Status 3: อนุมัติ/รับเงินแล้ว (Active Green) */
+.status-choice-btn.type-approved.active {
+  background: linear-gradient(145deg, #e6edf5 0%, #dcfce7 100%);
+  border-color: #16a34a;
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light),
+              0 0 12px rgba(22, 163, 74, 0.3);
+}
+.status-choice-btn.type-approved.active .status-icon {
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  color: #ffffff;
+}
+.status-choice-btn.type-approved.active .title { color: #15803d; }
+
+/* Status 4: ลูกค้าไม่สนใจ (Active Red) */
+.status-choice-btn.type-uninterested.active {
+  background: linear-gradient(145deg, #e6edf5 0%, #fee2e2 100%);
+  border-color: #dc2626;
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light),
+              0 0 12px rgba(220, 38, 38, 0.3);
+}
+.status-choice-btn.type-uninterested.active .status-icon {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: #ffffff;
+}
+.status-choice-btn.type-uninterested.active .title { color: #991b1b; }
+
+/* Status 5: ไม่เข้าเงื่อนไข (Active Slate) */
+.status-choice-btn.type-disqualified.active {
+  background: linear-gradient(145deg, #e6edf5 0%, #f1f5f9 100%);
+  border-color: #475569;
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light);
+}
+.status-choice-btn.type-disqualified.active .status-icon {
+  background: #475569;
+  color: #ffffff;
+}
+.status-choice-btn.type-disqualified.active .title { color: #1e293b; }
+
+/* --------------------------------------------------------------------------
+   Sunken Inset Inputs (Pure Neumorphism)
+   -------------------------------------------------------------------------- */
+.neu-input {
+  background: var(--neu-bg);
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
+              inset -3px -3px 7px var(--neu-light);
+  color: var(--obsidian-black);
+  padding: 0.75rem 1.1rem;
+  outline: none;
+  font-size: 0.925rem;
+  min-height: 44px;
+  transition: all 0.2s ease;
+}
+
+.neu-input:focus {
+  border-color: var(--sunset-orange);
+  box-shadow: inset 4px 4px 8px var(--neu-shadow-deep), 
+              inset -4px -4px 8px var(--neu-light),
+              0 0 0 3px var(--sunset-orange-glow);
+}
+
+/* --------------------------------------------------------------------------
+   Tactile Spring Buttons
+   -------------------------------------------------------------------------- */
+.neu-button {
+  background: var(--neu-bg);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  box-shadow: 4px 4px 12px var(--neu-dark), 
+             -4px -4px 12px var(--neu-light);
+  color: var(--obsidian-black);
+  font-weight: 700;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+
+.neu-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 15px var(--neu-dark), 
+             -6px -6px 15px var(--neu-light);
+}
+
+.neu-button:active, .neu-button.active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 3px 3px 7px var(--neu-dark), 
+              inset -3px -3px 7px var(--neu-light);
+  border-color: #cbd5e1;
+}
+
+/* Sunset Orange CTA Button */
+.neu-button-orange {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8833 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 14px;
+  box-shadow: 5px 5px 15px var(--neu-dark), 
+             -5px -5px 15px var(--neu-light),
+             0 0 15px var(--sunset-orange-glow);
+  font-weight: 800;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.neu-button-orange:hover {
+  transform: translateY(-2px);
+  box-shadow: 7px 7px 18px var(--neu-dark), 
+             -7px -7px 18px var(--neu-light),
+             0 0 22px rgba(255, 107, 0, 0.55);
+}
+
+.neu-button-orange:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.45);
+}
+
+/* Electric Blue Secondary Button */
+.neu-button-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 14px;
+  box-shadow: 5px 5px 15px var(--neu-dark), 
+             -5px -5px 15px var(--neu-light),
+             0 0 15px var(--electric-blue-glow);
+  font-weight: 800;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.neu-button-blue:hover {
+  transform: translateY(-2px);
+  box-shadow: 7px 7px 18px var(--neu-dark), 
+             -7px -7px 18px var(--neu-light),
+             0 0 20px rgba(2, 132, 199, 0.5);
+}
+
+.neu-button-blue:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.45);
+}
+
+/* --------------------------------------------------------------------------
+   Dynamic Status Badges
+   -------------------------------------------------------------------------- */
+.status-badge {
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 2px 2px 5px var(--neu-dark), -2px -2px 5px var(--neu-light);
+}
+
+.status-appointment {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.status-callback {
+  background-color: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.status-approved {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-uninterested {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.status-disqualified {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Adaptive Card
+   -------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .mobile-table-card {
+    background: var(--neu-bg);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 5px 5px 13px var(--neu-dark), -5px -5px 13px var(--neu-light);
+    padding: 1rem;
+    margin-bottom: 0.9rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Animations
+   -------------------------------------------------------------------------- */
+@keyframes springFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: springFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.pulse-glow-orange {
+  animation: pulseGlowOrange 2s infinite;
+}
+
+@keyframes pulseGlowOrange {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.6); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 107, 0, 0); }
+}
+
+.pulse-glow-blue {
+  animation: pulseGlowBlue 2s infinite;
+}
+
+@keyframes pulseGlowBlue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.6); }
+  50% { box-shadow: 0 0 0 7px rgba(2, 132, 199, 0); }
+}

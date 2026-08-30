@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบบริหารงานลูกค้าสินเชื่อ | เงินไชโย สาขาเขาช่องพราน</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Modern Vector Icons (Lucide Icons) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js for Dashboard Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Canvas Confetti Celebration FX -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  
+  <!-- Pure Neumorphism Stylesheet (Chaiyo Dynamic Fusion Theme) -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="p-2.5 sm:p-4 md:p-6 text-slate-900 antialiased">
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto space-y-4 md:space-y-5">
+
+    <!-- Top Header Bar (Chaiyo Dynamic Fusion) -->
+    <header class="neu-card p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-gray-200">
+      <div class="flex items-center gap-3.5 w-full md:w-auto">
+        <!-- Logo Emblem -->
+        <div class="w-12 h-12 md:w-14 md:h-14 p-2.5 md:p-3 rounded-2xl bg-gradient-to-br from-orange-500 to-sky-600 flex-shrink-0 flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+          <i data-lucide="shield-check" class="w-7 h-7 text-white stroke-[2.2]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-lg sm:text-xl md:text-2xl font-black text-slate-950 tracking-tight truncate">เงินไชโย สาขาเขาช่องพราน</h1>
+            <span class="text-[10px] sm:text-[11px] bg-orange-100 text-orange-800 font-extrabold px-2.5 py-0.5 rounded-full border border-orange-200 shadow-sm">
+              สาขาเขาช่องพราน
+            </span>
+          </div>
+          <p class="text-xs text-slate-600 font-semibold truncate mt-0.5">ระบบรับเรื่องลูกค้า & สรุปผลงาน รายวัน / รายเดือน / รายปี</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
+        <button onclick="openCalcModal()" class="neu-button px-3.5 py-2 text-xs text-sky-950 font-bold flex items-center justify-center gap-1.5 border border-sky-200">
+          <i data-lucide="calculator" class="w-4 h-4 text-sky-600"></i>
+          <span>คำนวณค่างวด</span>
+        </button>
+
+        <button onclick="openReportModal()" class="neu-button-orange px-4 py-2 text-xs rounded-xl flex items-center justify-center gap-1.5 font-black shadow-md">
+          <i data-lucide="file-text" class="w-4 h-4 text-white"></i>
+          <span>สรุปส่งหัวหน้า</span>
+        </button>
+
+        <div id="syncStatus" class="col-span-2 sm:col-auto flex items-center justify-center gap-2 text-xs text-slate-800 bg-gray-200 px-3 py-2 rounded-xl border border-gray-300 shadow-inner">
+          <span class="w-2.5 h-2.5 rounded-full bg-sky-600 pulse-glow-blue"></span>
+          <span id="syncStatusText" class="font-bold truncate">พร้อมใช้งาน</span>
+        </div>
+
+        <button onclick="openConfigModal()" class="hidden sm:inline-flex neu-button p-2 text-xs text-slate-700 border border-gray-200" title="ตั้งค่าระบบ">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-700"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- BANNER: Today's Follow-up & Appointments Alert (Sunset Orange Soft UI) -->
+    <!-- ========================================================================= -->
+    <div id="todayAlertBanner" class="neu-card-sunset p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 border border-orange-300/80 animate-fade-in">
+      <div class="flex items-center gap-3 relative z-10 w-full sm:w-auto">
+        <div class="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-orange-600 text-white flex-shrink-0 flex items-center justify-center shadow-lg shadow-orange-600/30">
+          <i data-lucide="calendar-clock" class="w-6 h-6 text-white stroke-[2.2]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <h3 class="text-xs sm:text-sm font-black text-orange-950 truncate">ภารกิจติดตามงานประจำวัน</h3>
+            <span id="todayBadgeCount" class="bg-orange-700 text-white text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full font-black">0 งาน</span>
+          </div>
+          <p id="todayAlertDetails" class="text-[11px] sm:text-xs text-orange-900 mt-0.5 font-bold">
+            นัดเข้าสาขา <span id="todayAppointCount" class="font-black text-sky-950 text-sm">0</span> ราย | นัดโทรซ้ำ 90 วัน <span id="todayCallbackCount" class="font-black text-orange-950 text-sm">0</span> ราย
+          </p>
+        </div>
+      </div>
+      <button onclick="filterTodayTasks()" class="neu-button w-full sm:w-auto px-4 py-2.5 text-xs text-orange-950 font-black border border-orange-300 flex items-center justify-center gap-2 whitespace-nowrap rounded-xl relative z-10">
+        <i data-lucide="list-filter" class="w-4 h-4 text-orange-700"></i>
+        <span>ดูรายชื่อที่ต้องติดต่อ</span>
+      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex flex-row gap-1.5 sm:gap-2 md:gap-3 p-1.5 neu-card-sm border border-gray-200 overflow-x-auto">
+      <button id="tabBtn-form" onclick="switchTab('form')" class="neu-button active flex-1 py-2.5 px-2.5 sm:px-4 text-xs md:text-sm font-black flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl text-orange-600 whitespace-nowrap">
+        <i data-lucide="user-plus" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">1. </span><span>บันทึกข้อมูล</span>
+      </button>
+      <button id="tabBtn-list" onclick="switchTab('list')" class="neu-button flex-1 py-2.5 px-2.5 sm:px-4 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl text-slate-700 whitespace-nowrap">
+        <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">2. </span><span>ติดตาม & ค้นหา</span>
+      </button>
+      <button id="tabBtn-dashboard" onclick="switchTab('dashboard')" class="neu-button flex-1 py-2.5 px-2.5 sm:px-4 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl text-slate-700 whitespace-nowrap">
+        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">3. </span><span>แดชบอร์ดสรุปยอด</span>
+      </button>
+    </nav>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: FORM (บันทึกข้อมูลลูกค้าใหม่) -->
+    <!-- ========================================================================= -->
+    <section id="tab-form" class="space-y-5">
+      <div class="neu-card p-4 sm:p-6 md:p-8 border border-gray-200">
+        <div class="border-b border-gray-300 pb-3 md:pb-4 mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-slate-950 flex items-center gap-2">
+              <i data-lucide="file-edit" class="w-5 h-5 text-orange-600 stroke-[2.2]"></i>
+              แบบฟอร์มรับเรื่องลูกค้าสินเชื่อ
+            </h2>
+            <p class="text-xs text-slate-600 font-medium mt-0.5">กรอกข้อมูลเพื่อส่งประเมินราคาและบันทึกลง Google Sheets สาขาเขาช่องพราน</p>
+          </div>
+          <button type="button" onclick="openCalcModal()" class="neu-button px-3 py-1.5 text-xs text-sky-900 font-black flex items-center gap-1.5 border border-sky-200">
+            <i data-lucide="calculator" class="w-3.5 h-3.5 text-sky-600"></i>
+            <span>คำนวณค่างวดก่อน</span>
+          </button>
+        </div>
+
+        <form id="customerForm" onsubmit="handleFormSubmit(event)" class="space-y-5">
+          
+          <!-- หมวดที่ 1: ข้อมูลลูกค้า -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-black text-sky-950 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="user" class="w-4 h-4 text-sky-600"></i> 1. ข้อมูลลูกค้าและการติดต่อ
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-800">ชื่อ - นามสกุล ลูกค้า <span class="text-orange-600">*</span></label>
+                <input type="text" id="custName" required placeholder="เช่น นายสมชาย ใจดี" class="neu-input w-full font-semibold" />
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-800">เบอร์โทรศัพท์ติดต่อ <span class="text-orange-600">*</span></label>
+                <input type="tel" id="custPhone" required placeholder="เช่น 0812345678" maxlength="12" class="neu-input w-full font-semibold" />
+              </div>
+
+              <div class="space-y-1 sm:col-span-2 md:col-span-1">
+                <label class="text-xs font-bold text-slate-800">พนักงานผู้รับเรื่อง / ผู้ดูแล</label>
+                <input type="text" id="custOfficer" placeholder="เช่น พนักงานสาขาเขาช่องพราน" class="neu-input w-full font-semibold" />
+              </div>
+            </div>
+          </div>
+
+          <!-- หมวดที่ 2: รายละเอียดหลักประกัน / สเปกรถ -->
+          <div class="p-4 sm:p-5 rounded-2xl neu-card-sm border border-gray-300 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xs font-black text-sky-950 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="car" class="w-4 h-4 text-sky-600"></i> 2. เลือกประเภทหลักประกัน / สเปกรถในไทย
+              </h3>
+              <span class="text-[11px] text-orange-600 font-extrabold bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                กดเลือกได้ทันที
+              </span>
+            </div>
+
+            <!-- Hidden Input to store the selected vehicle type value -->
+            <input type="hidden" id="custVehicleType" value="มอเตอร์ไซค์" />
+
+            <!-- Pure Neumorphic Interactive Vehicle Selection Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              
+              <div id="vtype-card-มอเตอร์ไซค์" onclick="selectVehicleType('มอเตอร์ไซค์')" class="vehicle-type-btn active">
+                <div class="icon-box">
+                  <i data-lucide="bike" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div class="label-text">มอเตอร์ไซค์</div>
+                <div class="sub-label">Wave, PCX, Click</div>
+              </div>
+
+              <div id="vtype-card-รถเก๋ง" onclick="selectVehicleType('รถเก๋ง')" class="vehicle-type-btn">
+                <div class="icon-box">
+                  <i data-lucide="car" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div class="label-text">รถเก๋ง</div>
+                <div class="sub-label">Yaris, City, Civic</div>
+              </div>
+
+              <div id="vtype-card-รถกระบะ" onclick="selectVehicleType('รถกระบะ')" class="vehicle-type-btn">
+                <div class="icon-box">
+                  <i data-lucide="truck" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div class="label-text">รถกระบะ / SUV</div>
+                <div class="sub-label">D-Max, Revo, Fortuner</div>
+              </div>
+
+              <div id="vtype-card-รถบรรทุก/หกล้อ/สิบล้อ" onclick="selectVehicleType('รถบรรทุก/หกล้อ/สิบล้อ')" class="vehicle-type-btn">
+                <div class="icon-box">
+                  <i data-lucide="container" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div class="label-text">รถบรรทุก</div>
+                <div class="sub-label">6 ล้อ, 10 ล้อ, Hino</div>
+              </div>
+
+              <div id="vtype-card-รถเพื่อการเกษตร/แทรกเตอร์" onclick="selectVehicleType('รถเพื่อการเกษตร/แทรกเตอร์')" class="vehicle-type-btn">
+                <div class="icon-box">
+                  <i data-lucide="gauge" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div class="label-text">รถเกษตร / แทรกเตอร์</div>
+                <div class="sub-label">คูโบต้า, ยันม่าร์</div>
+              </div>
+
+              <div id="vtype-card-โฉนดที่ดิน/อสังหาฯ" onclick="selectVehicleType('โฉนดที่ดิน/อสังหาฯ')" class="vehicle-type-btn">
+                <div class="icon-box">
+                  <i data-lucide="home" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div class="label-text">โฉนดที่ดิน</div>
+                <div class="sub-label">น.ส.4จ ครุฑแดง</div>
+              </div>
+
+            </div>
+
+            <!-- Vehicle Specs: Brand, Model, Year, Amount -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-800">ยี่ห้อ / แบรนด์ <span class="text-orange-600">*</span></label>
+                <input list="brandList" id="custBrand" onchange="handleBrandChange(this.value)" required placeholder="เลือกหรือพิมพ์ยี่ห้อ" class="neu-input w-full font-bold" />
+                <datalist id="brandList"></datalist>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-800">รุ่น / แบบรถ <span class="text-orange-600">*</span></label>
+                <input list="modelList" id="custModel" placeholder="เลือกหรือพิมพ์รุ่นรถ" class="neu-input w-full font-bold" />
+                <datalist id="modelList"></datalist>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-800">ปีที่จดทะเบียน (ปีรถ)</label>
+                <select id="custYear" class="neu-input w-full font-bold"></select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-800">เลขทะเบียนรถ และ จังหวัด (ถ้ามี)</label>
+                <input type="text" id="custLicensePlate" placeholder="เช่น 1กข 9999 ราชบุรี" class="neu-input w-full font-semibold" />
+              </div>
+            </div>
+
+            <!-- Amount Section -->
+            <div class="pt-1">
+              <div class="space-y-1">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-bold text-slate-800">วงเงินที่ขอกู้ (บาท) <span class="text-orange-600">*</span></label>
+                  <button type="button" onclick="openCalcModal()" class="text-[11px] text-sky-700 hover:underline font-extrabold flex items-center gap-1">
+                    <i data-lucide="calculator" class="w-3 h-3 text-sky-600"></i> คำนวณค่างวดเบื้องต้น
+                  </button>
+                </div>
+                <input type="number" id="custAmount" required placeholder="เช่น 50000" min="1000" step="500" class="neu-input w-full font-black text-orange-600 text-base" />
+              </div>
+            </div>
+          </div>
+
+          <!-- หมวดที่ 3: สถานะเคส (Pure Neumorphic Visual Status Selector) -->
+          <div class="p-4 sm:p-5 rounded-2xl neu-card-sm border border-gray-300 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xs font-black text-sky-950 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-sky-600"></i> 3. เลือกสถานะเริ่มต้นของเคสนี้
+              </h3>
+              <span class="text-[11px] text-sky-700 font-extrabold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
+                เลือกสถานะที่ตรงกับงาน
+              </span>
+            </div>
+
+            <!-- Hidden Input for Status -->
+            <input type="hidden" id="custStatus" value="นัดหมายเข้าสาขา" />
+
+            <!-- Pure Neumorphic Status Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              
+              <!-- 1. นัดหมายเข้าสาขา -->
+              <div id="status-card-นัดหมายเข้าสาขา" onclick="selectCaseStatus('นัดหมายเข้าสาขา')" class="status-choice-btn type-appoint active">
+                <div class="status-icon">
+                  <i data-lucide="calendar" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div>
+                  <div class="title">1. นัดหมายเข้าสาขา</div>
+                  <div class="desc">ระบุวันเวลานัดตรวจสภาพรถ</div>
+                </div>
+              </div>
+
+              <!-- 2. ติดต่ออีกครั้ง 90 วัน -->
+              <div id="status-card-ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)" onclick="selectCaseStatus('ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)')" class="status-choice-btn type-callback">
+                <div class="status-icon">
+                  <i data-lucide="clock" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div>
+                  <div class="title">2. ติดต่ออีกครั้ง (90 วัน)</div>
+                  <div class="desc">รอครอบครองครบ 90 วัน / พึ่งโอน</div>
+                </div>
+              </div>
+
+              <!-- 3. อนุมัติ/รับเงินแล้ว -->
+              <div id="status-card-อนุมัติ/รับเงินแล้ว" onclick="selectCaseStatus('อนุมัติ/รับเงินแล้ว')" class="status-choice-btn type-approved">
+                <div class="status-icon">
+                  <i data-lucide="award" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div>
+                  <div class="title">3. อนุมัติ / รับเงินแล้ว</div>
+                  <div class="desc">ปิดการขายสำเร็จ โอนเงินแล้ว 🎉</div>
+                </div>
+              </div>
+
+              <!-- 4. ลูกค้าไม่สนใจ -->
+              <div id="status-card-ลูกค้าไม่สนใจ" onclick="selectCaseStatus('ลูกค้าไม่สนใจ')" class="status-choice-btn type-uninterested">
+                <div class="status-icon">
+                  <i data-lucide="user-x" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div>
+                  <div class="title">4. ลูกค้าไม่สนใจ</div>
+                  <div class="desc">สอบถามเฉยๆ / ดอกเบี้ยไม่ตรงใจ</div>
+                </div>
+              </div>
+
+              <!-- 5. ไม่เข้าเงื่อนไข -->
+              <div id="status-card-ไม่เข้าเงื่อนไข" onclick="selectCaseStatus('ไม่เข้าเงื่อนไข')" class="status-choice-btn type-disqualified sm:col-span-2 lg:col-span-2">
+                <div class="status-icon">
+                  <i data-lucide="shield-alert" class="w-5 h-5 stroke-[2.2]"></i>
+                </div>
+                <div>
+                  <div class="title">5. ไม่เข้าเงื่อนไข</div>
+                  <div class="desc">ไม่มีเล่มทะเบียน / เอกสารไม่ผ่านเกณฑ์</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Dynamic Date Picker -->
+            <div id="appointmentDateFieldContainer" class="space-y-1 p-3.5 rounded-xl bg-gray-200 border border-gray-300 shadow-inner animate-fade-in">
+              <label id="appointmentDateLabel" class="text-xs font-black text-sky-950 flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-4 h-4 text-sky-600"></i>
+                <span>วันที่และเวลานัดหมายเข้าสาขา (รูปแบบ 24 ชม.):</span>
+              </label>
+              <input type="datetime-local" id="custAppointmentDate" class="neu-input w-full text-xs font-bold text-slate-900 bg-white" />
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-slate-800">บันทึกรายละเอียดเพิ่มเติม / หมายเหตุ</label>
+              <textarea id="custNote" rows="2" placeholder="เช่น ลูกค้าสะดวกช่วงบ่าย นัดเอารถมาตรวจวันศุกร์นี้ หรือ โอนรถมาเมื่อวันที่..." class="neu-input w-full resize-none font-semibold"></textarea>
+            </div>
+          </div>
+
+          <!-- ปุ่ม Submit -->
+          <div class="pt-2 flex flex-col-reverse sm:flex-row justify-end gap-2.5 border-t border-gray-300">
+            <button type="reset" class="neu-button px-6 py-2.5 text-sm text-slate-700 font-bold border border-gray-200">
+              ล้างข้อมูล
+            </button>
+            <button type="submit" id="btnSubmitForm" class="neu-button-orange px-8 py-2.5 text-sm flex items-center justify-center gap-2 rounded-xl">
+              <i data-lucide="upload-cloud" class="w-4 h-4 text-white"></i>
+              <span>บันทึกข้อมูลลูกค้า</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: LIST & TRACKING (Mobile Cards + Tablet/Desktop Table) -->
+    <!-- ========================================================================= -->
+    <section id="tab-list" class="hidden space-y-4">
+      
+      <!-- Filter & Search Controls -->
+      <div class="neu-card p-4 sm:p-5 space-y-3 border border-gray-200">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-row gap-2.5 items-center justify-between">
+          <div class="relative w-full sm:col-span-2 md:w-80">
+            <input type="text" id="searchInput" oninput="filterCustomerTable()" placeholder="ค้นหาชื่อ, ยี่ห้อ, ทะเบียน, เบอร์โทร..." class="neu-input w-full font-semibold" />
+          </div>
+
+          <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full md:w-auto items-center">
+            <select id="statusFilter" onchange="filterCustomerTable()" class="neu-input text-xs py-2 font-bold">
+              <option value="">ทุกสถานะงาน</option>
+              <option value="นัดหมายเข้าสาขา">📅 นัดหมายเข้าสาขา</option>
+              <option value="ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)">⏳ ติดต่ออีกครั้ง 90 วัน</option>
+              <option value="อนุมัติ/รับเงินแล้ว">🎉 อนุมัติ/รับเงินแล้ว</option>
+              <option value="ลูกค้าไม่สนใจ">🚫 ลูกค้าไม่สนใจ</option>
+              <option value="ไม่เข้าเงื่อนไข">❌ ไม่เข้าเงื่อนไข</option>
+            </select>
+
+            <select id="typeFilter" onchange="filterCustomerTable()" class="neu-input text-xs py-2 font-bold">
+              <option value="">ทุกประเภทรถ</option>
+              <option value="มอเตอร์ไซค์">มอเตอร์ไซค์</option>
+              <option value="รถเก๋ง">รถเก๋ง</option>
+              <option value="รถกระบะ">กระบะ / SUV</option>
+              <option value="รถบรรทุก/หกล้อ/สิบล้อ">รถบรรทุก</option>
+              <option value="รถเพื่อการเกษตร/แทรกเตอร์">แทรกเตอร์</option>
+              <option value="โฉนดที่ดิน/อสังหาฯ">โฉนดที่ดิน</option>
+            </select>
+
+            <button onclick="loadCustomerData()" class="col-span-2 sm:col-auto neu-button px-3.5 py-2 text-xs text-sky-900 font-black flex items-center justify-center gap-1.5 border border-sky-200" title="รีเฟรชข้อมูล">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-sky-600"></i>
+              <span>รีเฟรช</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container -->
+      <div class="neu-card p-4 sm:p-5 md:p-6 overflow-hidden border border-gray-200">
+        <div class="flex items-center justify-between mb-3.5">
+          <h3 class="text-sm font-black text-slate-950 flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-orange-600"></i>
+            รายการลูกค้าทั้งหมด (<span id="totalDisplayCount">0</span> รายการ)
+          </h3>
+        </div>
+
+        <!-- Mobile Cards View -->
+        <div id="mobileCustomerCards" class="block md:hidden space-y-3"></div>
+
+        <!-- iPad & Desktop Table View -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left text-xs md:text-sm">
+            <thead>
+              <tr class="border-b border-gray-300 text-slate-600 font-bold">
+                <th class="py-3 px-3">วันที่</th>
+                <th class="py-3 px-3">ชื่อลูกค้า & ติดต่อ</th>
+                <th class="py-3 px-3">ยี่ห้อ / รุ่น / ปี / ทะเบียน</th>
+                <th class="py-3 px-3 text-right">วงเงินที่ขอ</th>
+                <th class="py-3 px-3 text-center">สถานะ & วันนัดหมาย</th>
+                <th class="py-3 px-3">ผู้ดูแล</th>
+                <th class="py-3 px-3 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="customerTableBody" class="divide-y divide-gray-300"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: PURE NEUMORPHISM EXECUTIVE DASHBOARD -->
+    <!-- ========================================================================= -->
+    <section id="tab-dashboard" class="hidden space-y-5 animate-fade-in">
+      
+      <!-- Top Control & Time Switcher Bar -->
+      <div class="neu-card p-4 sm:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3.5 border border-gray-200">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm sm:text-base font-black text-slate-950 flex items-center gap-2">
+              <i data-lucide="trending-up" class="w-5 h-5 text-orange-600 stroke-[2.2]"></i>
+              แดชบอร์ดสรุปผลงานสาขา
+            </h3>
+            <span id="dashboardPeriodTitle" class="text-orange-950 bg-orange-100 px-3 py-0.5 rounded-full text-xs font-black border border-orange-200 shadow-sm">
+              ประจำเดือนนี้
+            </span>
+          </div>
+          <p class="text-xs text-slate-600 font-semibold">สรุปผลงานสินเชื่อ สถิติปิดการขาย และหลักประกัน เงินไชโย สาขาเขาช่องพราน</p>
+        </div>
+
+        <!-- Pure Neumorphic Segmented Time Switcher -->
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div class="neu-track flex items-center gap-1 w-full sm:w-auto">
+            <button id="periodBtn-today" onclick="setDashboardPeriod('today')" class="neu-button px-3.5 py-1.5 text-xs font-bold text-slate-700 rounded-xl flex items-center gap-1.5 flex-1 sm:flex-initial justify-center">
+              <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-600"></i>
+              <span>วันนี้</span>
+            </button>
+            <button id="periodBtn-month" onclick="setDashboardPeriod('month')" class="neu-button active px-3.5 py-1.5 text-xs font-black text-orange-600 rounded-xl flex items-center gap-1.5 flex-1 sm:flex-initial justify-center">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-600"></i>
+              <span>เดือนนี้</span>
+            </button>
+            <button id="periodBtn-year" onclick="setDashboardPeriod('year')" class="neu-button px-3.5 py-1.5 text-xs font-bold text-slate-700 rounded-xl flex items-center gap-1.5 flex-1 sm:flex-initial justify-center">
+              <i data-lucide="chart-column-increasing" class="w-3.5 h-3.5 text-sky-600"></i>
+              <span>ปีนี้</span>
+            </button>
+            <button id="periodBtn-all" onclick="setDashboardPeriod('all')" class="neu-button px-3.5 py-1.5 text-xs font-bold text-slate-700 rounded-xl flex items-center gap-1.5 flex-1 sm:flex-initial justify-center">
+              <i data-lucide="globe" class="w-3.5 h-3.5 text-slate-700"></i>
+              <span>ทั้งหมด</span>
+            </button>
+          </div>
+
+          <button onclick="openReportModal()" class="neu-button-orange px-4 py-2 text-xs rounded-xl flex items-center justify-center gap-2 font-black shadow-md w-full sm:w-auto">
+            <i data-lucide="send" class="w-3.5 h-3.5 text-white"></i>
+            <span>สรุปรายงานส่งหัวหน้า</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Executive KPI Metric Cards (Pure Neumorphic Soft UI) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        
+        <!-- KPI 1: Total Leads -->
+        <div class="kpi-card">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">ลูกค้าในช่วงเวลานี้</span>
+            <div class="kpi-icon-well text-sky-600">
+              <i data-lucide="users" class="w-5 h-5 stroke-[2.2]"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-1.5">
+              <h4 id="kpiTotalCases" class="text-2xl sm:text-3xl font-black text-sky-950 tracking-tight">0</h4>
+              <span class="text-xs font-bold text-sky-800">ราย</span>
+            </div>
+            <div class="mt-2 neu-progress-bg">
+              <div class="neu-progress-fill-blue" style="width: 100%;"></div>
+            </div>
+            <p class="text-[11px] text-slate-600 font-semibold mt-1.5">รับเรื่องและให้คำปรึกษาสินเชื่อ</p>
+          </div>
+        </div>
+
+        <!-- KPI 2: Total Loan Amount Requested -->
+        <div class="kpi-card">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">ยอดขอสินเชื่อรวม</span>
+            <div class="kpi-icon-well text-orange-600">
+              <i data-lucide="wallet" class="w-5 h-5 stroke-[2.2]"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-1.5">
+              <h4 id="kpiTotalAmount" class="text-2xl sm:text-3xl font-black text-orange-600 tracking-tight">0</h4>
+              <span class="text-xs font-bold text-orange-800">บาท</span>
+            </div>
+            <div class="mt-2 neu-progress-bg">
+              <div class="neu-progress-fill-orange" style="width: 100%;"></div>
+            </div>
+            <p class="text-[11px] text-slate-600 font-semibold mt-1.5">มูลค่าคำขอสินเชื่อทั้งหมด</p>
+          </div>
+        </div>
+
+        <!-- KPI 3: Approved & Closed Won Amount -->
+        <div class="kpi-card">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">ยอดอนุมัติสำเร็จ</span>
+            <div class="kpi-icon-well text-emerald-600">
+              <i data-lucide="badge-check" class="w-5 h-5 stroke-[2.2]"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-1.5">
+              <h4 id="kpiApprovedAmount" class="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight">0</h4>
+              <span class="text-xs font-bold text-emerald-800">บาท</span>
+            </div>
+            <div class="mt-2 neu-progress-bg">
+              <div id="kpiApprovedProgress" class="neu-progress-fill-green" style="width: 0%;"></div>
+            </div>
+            <p class="text-[11px] text-slate-600 font-semibold mt-1.5">
+              อนุมัติแล้ว <span id="kpiApprovedCount" class="font-black text-emerald-800">0</span> ราย
+            </p>
+          </div>
+        </div>
+
+        <!-- KPI 4: Win Rate -->
+        <div class="kpi-card">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">อัตราปิดการขาย (Win Rate)</span>
+            <div class="kpi-icon-well text-slate-900">
+              <i data-lucide="trophy" class="w-5 h-5 stroke-[2.2]"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-1.5">
+              <h4 id="kpiWinRate" class="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">0%</h4>
+              <span class="text-xs font-bold text-slate-700">สำเร็จ</span>
+            </div>
+            <div class="mt-2 neu-progress-bg">
+              <div id="kpiWinRateProgress" class="neu-progress-fill-orange" style="width: 0%;"></div>
+            </div>
+            <p class="text-[11px] text-slate-600 font-semibold mt-1.5">สัดส่วนเคสปิดสำเร็จเทียบยอดรับเรื่อง</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Advanced Analytics Cards (Charts + Mini Metrics) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        
+        <!-- Left Analytics Card: Vehicle / Collateral Distribution -->
+        <div class="neu-card p-4 sm:p-6 border border-gray-200 space-y-4">
+          <div class="flex justify-between items-center border-b border-gray-300 pb-3">
+            <h4 class="text-xs sm:text-sm font-black text-slate-950 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-orange-600"></i>
+              สัดส่วนประเภทหลักประกัน (ช่วงเวลานี้)
+            </h4>
+            <span class="text-[11px] text-slate-600 font-bold bg-gray-200 px-2 py-0.5 rounded-md">
+              Doughnut Chart
+            </span>
+          </div>
+
+          <div class="h-60 sm:h-64 flex items-center justify-center relative">
+            <canvas id="vehicleChart"></canvas>
+          </div>
+
+          <!-- Mini Legend Stats Grid -->
+          <div id="vehicleMiniStats" class="grid grid-cols-3 gap-2 pt-2 border-t border-gray-300/80 text-center"></div>
+        </div>
+
+        <!-- Right Analytics Card: Status Progression & Conversion Funnel -->
+        <div class="neu-card p-4 sm:p-6 border border-gray-200 space-y-4">
+          <div class="flex justify-between items-center border-b border-gray-300 pb-3">
+            <h4 class="text-xs sm:text-sm font-black text-slate-950 flex items-center gap-2">
+              <i data-lucide="bar-chart-3" class="w-4 h-4 text-sky-600"></i>
+              สถานะการติดตามงาน (ช่วงเวลานี้)
+            </h4>
+            <span class="text-[11px] text-slate-600 font-bold bg-gray-200 px-2 py-0.5 rounded-md">
+              Conversion Bar
+            </span>
+          </div>
+
+          <div class="h-60 sm:h-64 flex items-center justify-center">
+            <canvas id="statusChart"></canvas>
+          </div>
+
+          <!-- Status Breakdown Mini Stats -->
+          <div id="statusMiniStats" class="grid grid-cols-3 gap-2 pt-2 border-t border-gray-300/80 text-center"></div>
+        </div>
+
+      </div>
+
+      <!-- Quick Executive Summary Strip -->
+      <div class="neu-card p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border border-gray-300/80">
+        <div class="flex items-center gap-3 text-center sm:text-left">
+          <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h5 class="text-xs sm:text-sm font-black text-slate-950">ส่งรายงานสรุปยอดให้หัวหน้า / ผู้จัดการสาขา</h5>
+            <p class="text-[11px] text-slate-600 font-medium">กดปุ่มเพื่อคัดลอกข้อความสรุปสถิติประจำวัน/เดือน พร้อมส่งเข้า LINE กลุ่มสาขาได้ทันที</p>
+          </div>
+        </div>
+        <button onclick="openReportModal()" class="neu-button-orange px-5 py-2 text-xs rounded-xl flex items-center gap-1.5 font-black whitespace-nowrap shadow-sm">
+          <i data-lucide="copy" class="w-4 h-4 text-white"></i>
+          <span>สร้างข้อความรายงาน LINE</span>
+        </button>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: Executive Report Generator -->
+  <!-- ========================================================================= -->
+  <div id="reportModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-3 sm:p-4">
+    <div class="neu-card max-w-lg w-full p-5 space-y-4 animate-fade-in border border-gray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-gray-300 pb-3">
+        <h3 class="font-black text-slate-950 text-sm sm:text-base flex items-center gap-2">
+          <i data-lucide="file-spreadsheet" class="w-5 h-5 text-orange-600"></i>
+          สรุปรายงานส่งหัวหน้า (สาขาเขาช่องพราน)
+        </h3>
+        <button onclick="closeReportModal()" class="text-slate-500 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">เลือกช่วงเวลาของรายงานที่ต้องการสรุป:</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="repSelect-today" onclick="generateExecutiveReport('today')" class="neu-button py-2 text-xs font-bold text-slate-700">
+              📅 วันนี้
+            </button>
+            <button type="button" id="repSelect-month" onclick="generateExecutiveReport('month')" class="neu-button active py-2 text-xs font-black text-orange-600">
+              📆 เดือนนี้
+            </button>
+            <button type="button" id="repSelect-year" onclick="generateExecutiveReport('year')" class="neu-button py-2 text-xs font-bold text-slate-700">
+              📈 ปีนี้
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">ตัวอย่างข้อความรายงาน (พร้อมก๊อปปี้ส่ง LINE ผู้บริหาร/หัวหน้า):</label>
+          <textarea id="reportTextPreview" rows="8" readonly class="neu-input w-full font-mono text-xs text-slate-900 bg-gray-100"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-gray-300">
+        <button type="button" onclick="closeReportModal()" class="neu-button px-4 py-2 text-slate-700 text-xs font-bold border border-gray-200">ปิด</button>
+        <button type="button" onclick="copyExecutiveReportToClipboard()" class="neu-button-orange px-5 py-2 rounded-xl text-xs flex items-center gap-1.5 font-black shadow-md">
+          <i data-lucide="copy" class="w-4 h-4 text-white"></i>
+          <span>คัดลอกข้อความส่งหัวหน้า</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: Loan Installment Calculator -->
+  <!-- ========================================================================= -->
+  <div id="calcModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-3 sm:p-4">
+    <div class="neu-card max-w-md w-full p-5 space-y-4 animate-fade-in border border-gray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-gray-300 pb-3">
+        <h3 class="font-black text-slate-950 text-sm sm:text-base flex items-center gap-2">
+          <i data-lucide="calculator" class="w-5 h-5 text-sky-600"></i>
+          เครื่องคำนวณค่างวดสินเชื่อ
+        </h3>
+        <button onclick="closeCalcModal()" class="text-slate-500 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">ยอดเงินที่ต้องการกู้ (บาท)</label>
+          <input type="number" id="calcPrincipal" value="50000" step="1000" oninput="calculateInstallment()" class="neu-input w-full font-black text-orange-600 text-base" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="space-y-1">
+            <label class="font-bold text-slate-800">ดอกเบี้ยต่อเดือน (%)</label>
+            <input type="number" id="calcInterestRate" value="1.15" step="0.05" oninput="calculateInstallment()" class="neu-input w-full font-bold" />
+          </div>
+          <div class="space-y-1">
+            <label class="font-bold text-slate-800">จำนวนงวด</label>
+            <select id="calcMonths" onchange="calculateInstallment()" class="neu-input w-full font-bold">
+              <option value="12">12 เดือน (1 ปี)</option>
+              <option value="18">18 เดือน</option>
+              <option value="24" selected>24 เดือน (2 ปี)</option>
+              <option value="36">36 เดือน (3 ปี)</option>
+              <option value="48">48 เดือน (4 ปี)</option>
+              <option value="60">60 เดือน (5 ปี)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-gray-200 border border-gray-300 shadow-inner text-center space-y-1">
+          <p class="text-xs text-slate-700 font-bold">ยอดผ่อนชำระประมาณต่อเดือน</p>
+          <h4 id="calcMonthlyPayment" class="text-xl sm:text-2xl font-black text-sky-950">0 บาท / เดือน</h4>
+          <p id="calcTotalInterest" class="text-[11px] text-slate-600 font-medium">ดอกเบี้ยรวม: 0 บาท | ยอดชำระรวม: 0 บาท</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-gray-300">
+        <button type="button" onclick="closeCalcModal()" class="neu-button px-4 py-2 text-slate-700 text-xs font-bold border border-gray-200">ปิด</button>
+        <button type="button" onclick="applyCalculatedAmountToForm()" class="neu-button-orange px-5 py-2 rounded-xl text-xs flex items-center gap-1.5 font-black">
+          <i data-lucide="check" class="w-4 h-4 text-white"></i>
+          <span>นำยอดนี้ไปใส่ในฟอร์ม</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: Update Customer Status & Notes -->
+  <!-- ========================================================================= -->
+  <div id="updateModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-3 sm:p-4">
+    <div class="neu-card max-w-lg w-full p-5 space-y-4 animate-fade-in border border-gray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-gray-300 pb-3">
+        <h3 class="font-black text-slate-950 text-sm sm:text-base flex items-center gap-2">
+          <i data-lucide="edit-3" class="w-5 h-5 text-orange-600"></i>
+          อัปเดตสถานะเคสลูกค้า
+        </h3>
+        <button onclick="closeUpdateModal()" class="text-slate-500 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="updateForm" onsubmit="handleUpdateSubmit(event)" class="space-y-3.5 text-xs sm:text-sm">
+        <input type="hidden" id="modalCustId" />
+        
+        <div>
+          <p class="text-slate-600 font-medium">ลูกค้า:</p>
+          <p id="modalCustName" class="font-black text-slate-950 text-sm"></p>
+          <p id="modalCustVehicleDetail" class="text-xs text-sky-900 font-bold"></p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="font-bold text-slate-800">เลือกสถานะเคสล่าสุด <span class="text-orange-600">*</span></label>
+          <input type="hidden" id="modalCustStatus" value="นัดหมายเข้าสาขา" />
+          
+          <div class="grid grid-cols-1 gap-2">
+            <div id="mstatus-card-นัดหมายเข้าสาขา" onclick="selectModalStatus('นัดหมายเข้าสาขา')" class="status-choice-btn type-appoint active">
+              <div class="status-icon"><i data-lucide="calendar" class="w-4 h-4"></i></div>
+              <div>
+                <div class="title">📅 1. นัดหมายเข้าสาขา</div>
+                <div class="desc">ระบุวันเวลานัดตรวจสภาพรถ</div>
+              </div>
+            </div>
+
+            <div id="mstatus-card-ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)" onclick="selectModalStatus('ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)')" class="status-choice-btn type-callback">
+              <div class="status-icon"><i data-lucide="clock" class="w-4 h-4"></i></div>
+              <div>
+                <div class="title">⏳ 2. ติดต่ออีกครั้ง (90 วัน)</div>
+                <div class="desc">รอครบกำหนดโอน / ติดต่อภายหลัง</div>
+              </div>
+            </div>
+
+            <div id="mstatus-card-อนุมัติ/รับเงินแล้ว" onclick="selectModalStatus('อนุมัติ/รับเงินแล้ว')" class="status-choice-btn type-approved">
+              <div class="status-icon"><i data-lucide="award" class="w-4 h-4"></i></div>
+              <div>
+                <div class="title">🎉 3. อนุมัติ / รับเงินแล้ว</div>
+                <div class="desc">ปิดการขายสำเร็จ</div>
+              </div>
+            </div>
+
+            <div id="mstatus-card-ลูกค้าไม่สนใจ" onclick="selectModalStatus('ลูกค้าไม่สนใจ')" class="status-choice-btn type-uninterested">
+              <div class="status-icon"><i data-lucide="user-x" class="w-4 h-4"></i></div>
+              <div>
+                <div class="title">🚫 4. ลูกค้าไม่สนใจ</div>
+                <div class="desc">ดอกเบี้ยไม่ตรงใจ / ไม่สะดวก</div>
+              </div>
+            </div>
+
+            <div id="mstatus-card-ไม่เข้าเงื่อนไข" onclick="selectModalStatus('ไม่เข้าเงื่อนไข')" class="status-choice-btn type-disqualified">
+              <div class="status-icon"><i data-lucide="shield-alert" class="w-4 h-4"></i></div>
+              <div>
+                <div class="title">❌ 5. ไม่เข้าเงื่อนไข</div>
+                <div class="desc">ไม่มีเล่มทะเบียน / เอกสารไม่ครบ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="modalDateFieldContainer" class="space-y-1 p-3 rounded-xl bg-gray-200 border border-gray-300 shadow-inner">
+          <label id="modalDateLabel" class="font-bold text-sky-950 text-xs">📅 วันที่นัดหมาย / วันที่นัดโทรซ้ำ (24 ชม.)</label>
+          <input type="datetime-local" id="modalCustAppointmentDate" class="neu-input w-full text-xs font-bold bg-white" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">วงเงินปรับปรุงล่าสุด (บาท)</label>
+          <input type="number" id="modalCustAmount" class="neu-input w-full text-xs sm:text-sm font-black text-orange-600" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">พนักงานผู้รับผิดชอบ</label>
+          <input type="text" id="modalCustOfficer" class="neu-input w-full text-xs sm:text-sm font-bold" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">บันทึกความคืบหน้า / รายละเอียดนัดหมาย</label>
+          <textarea id="modalCustNote" rows="2" class="neu-input w-full text-xs sm:text-sm resize-none font-semibold"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-gray-300">
+          <button type="button" onclick="closeUpdateModal()" class="neu-button px-4 py-2 text-slate-700 text-xs font-bold border border-gray-200">ยกเลิก</button>
+          <button type="submit" id="btnSubmitUpdate" class="neu-button-orange px-5 py-2 rounded-xl flex items-center gap-1.5 font-black">
+            <i data-lucide="check" class="w-4 h-4 text-white"></i>
+            <span>บันทึกการอัปเดต</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: API & System Configuration -->
+  <!-- ========================================================================= -->
+  <div id="configModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-3 sm:p-4">
+    <div class="neu-card max-w-lg w-full p-5 space-y-4 animate-fade-in border border-gray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-gray-300 pb-3">
+        <h3 class="font-black text-slate-950 text-sm sm:text-base flex items-center gap-2">
+          <i data-lucide="settings-2" class="w-5 h-5 text-sky-600"></i>
+          ตั้งค่า URL เชื่อมต่อ Google Apps Script
+        </h3>
+        <button onclick="closeConfigModal()" class="text-slate-500 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <p class="text-slate-700 font-semibold">
+          นำ Web App URL ที่ได้จากการกด <strong>Deploy</strong> ใน Google Apps Script มาใส่ที่นี่ เพื่อให้หน้าเว็บรับ-ส่งข้อมูลกับ Google Sheets ของคุณ:
+        </p>
+
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">Google Apps Script Web App URL</label>
+          <input type="url" id="configApiUrl" placeholder="https://script.google.com/macros/s/.../exec" class="neu-input w-full text-xs font-mono font-bold" />
+        </div>
+
+        <!-- Sync Old Customers Section -->
+        <div class="p-3.5 rounded-xl bg-orange-50 border border-orange-200 space-y-2 mt-2">
+          <div class="flex items-center gap-2 text-orange-950 font-black">
+            <i data-lucide="database" class="w-4 h-4 text-orange-600"></i>
+            <span>ดึงข้อมูลลูกค้าเก่าจากแท็บ "ข้อมูลลูกค้าติดต่อ"</span>
+          </div>
+          <p class="text-[11px] text-slate-600 font-medium">
+            ระบบจะแปลงชื่อ, เบอร์โทร, ยี่ห้อ/รุ่นรถ, สถานะ และยอดเงินเข้าสู่ระบบใหม่ครบทุกแถว 100%
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <button type="button" onclick="triggerSyncOldData(false)" class="neu-button px-3 py-2 text-xs text-orange-950 font-black border border-orange-300 flex items-center justify-center gap-1.5 w-full">
+              <i data-lucide="import" class="w-3.5 h-3.5 text-orange-600"></i>
+              <span>ดึงเพิ่มเฉพาะรายการใหม่</span>
+            </button>
+            <button type="button" onclick="triggerSyncOldData(true)" class="neu-button px-3 py-2 text-xs text-sky-950 font-black border border-sky-300 flex items-center justify-center gap-1.5 w-full">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-sky-600"></i>
+              <span>ดึงใหม่ทั้งหมด 100% (Re-sync)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-gray-300">
+        <button type="button" onclick="closeConfigModal()" class="neu-button px-4 py-2 text-slate-700 text-xs font-bold border border-gray-200">ปิด</button>
+        <button type="button" onclick="saveApiUrlConfig()" class="neu-button-blue px-5 py-2 rounded-xl text-xs flex items-center gap-1.5 font-black">
+          <i data-lucide="save" class="w-4 h-4 text-white"></i>
+          <span>บันทึก URL</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
