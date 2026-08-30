@@ -13,11 +13,15 @@ const SHEET_NAME = "ข้อมูลลูกค้าสินเชื่อ
 const SUMMARY_SHEET_NAME = "สรุปผลงาน_รายเดือน_รายปี";
 const OLD_CONTACT_SHEET_NAME = "ข้อมูลลูกค้าติดต่อ";
 
-// 3. ตั้งค่า LINE Messaging API
+// 3. URL หน้าเว็บแอป & โลโก้ของสาขาเขาช่องพราน
+const WEB_APP_URL = "https://limpirat5-design.github.io/lead-Chaiyo/";
+const LOGO_IMAGE_URL = "https://limpirat5-design.github.io/lead-Chaiyo/logo.png";
+
+// 4. ตั้งค่า LINE Messaging API
 const LINE_CHANNEL_ACCESS_TOKEN = "QRsyH5BB2oI1crhr5KQ+N0zkwePgbjasdtmT2H/rs+TsTCyEfZTu20C/fQSmVB980Wh5avxg6rl4nfTCVOXJjvsUrzFhso9tmH/wEfbXCz7qq3p9/SMcs4us/0Ef1bMdhEBHWb5Xt5WE6upG5DMOHwdB04t89/1O/w1cDnyilFU=";
 
-// 🎯 ID กลุ่ม LINE สาขาเขาช่องพราน
-const LINE_TARGET_ID = "Cfb9b5689830caeda4960f7d6e0bc20fe"; 
+// 🎯 ID กลุ่ม LINE สาขาเขาช่องพราน (Push Message เข้ากลุ่มนี้โดยตรง)
+const LINE_TARGET_ID = "Ce28347e956cadb979061385ade15670d"; 
 
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
