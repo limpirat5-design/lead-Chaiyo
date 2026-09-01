@@ -598,7 +598,7 @@ function filterTodayTasks() {
   switchTab("list");
   const sFilter = document.getElementById("statusFilter");
   const tFilter = document.getElementById("typeFilter");
-  if (sFilter) sFilter.value = "";
+  if (sFilter) sFilter.value = "active";
   if (tFilter) tFilter.value = "";
   
   const todayTasks = customerDataList.filter(c => 
@@ -656,7 +656,7 @@ async function loadCustomerData() {
 
   if (!currentApiUrl) {
     updateSyncStatus("demo", "โหมดจำลอง (ยังไม่ได้เชื่อมต่อชีต)");
-    renderCustomerTable(customerDataList);
+    filterCustomerTable();
     updateTodayTasksBanner();
     return;
   }
@@ -674,7 +674,7 @@ async function loadCustomerData() {
         regionalChecklistData = result.regionalChecklist;
       }
       updateSyncStatus("online", "เชื่อมต่อ Google Sheets สำเร็จ");
-      renderCustomerTable(customerDataList);
+      filterCustomerTable();
       updateTodayTasksBanner();
       populateDashboardMonthSelect(customerDataList);
       renderRegionalChecklist(regionalChecklistData);
@@ -687,7 +687,7 @@ async function loadCustomerData() {
   } catch (error) {
     console.error("Fetch error:", error);
     updateSyncStatus("error", "ดึงข้อมูลไม่สำเร็จ (คลิก ⚙️ ตรวจสอบ URL)");
-    renderCustomerTable(customerDataList);
+    filterCustomerTable();
     updateTodayTasksBanner();
   }
 }
@@ -800,7 +800,7 @@ async function handleFormSubmit(event) {
     document.getElementById("customerForm").reset();
     selectVehicleType("มอเตอร์ไซค์");
     selectCaseStatus("นัดหมายเข้าสาขา");
-    renderCustomerTable(customerDataList);
+    filterCustomerTable();
     updateTodayTasksBanner();
     switchTab("list");
   }
@@ -959,21 +959,33 @@ function renderCustomerTable(data) {
 }
 
 /**
- * ค้นหาและกรอง
+ * ค้นหาและกรอง (ซ่อนเคสไม่สนใจและไม่เข้าเงื่อนไขเป็นค่าเริ่มต้น)
  */
 function filterCustomerTable() {
   const qEl = document.getElementById("searchInput");
   const sEl = document.getElementById("statusFilter");
   const tEl = document.getElementById("typeFilter");
 
-  const query = qEl ? qEl.value.toLowerCase() : "";
-  const status = sEl ? sEl.value : "";
+  const query = qEl ? qEl.value.toLowerCase().trim() : "";
+  const status = sEl ? sEl.value : "active";
   const type = tEl ? tEl.value : "";
 
   const filtered = customerDataList.filter(item => {
     const fullSearchStr = `${item.name || ''} ${item.phone || ''} ${item.brand || ''} ${item.model || ''} ${item.licensePlate || ''} ${item.officer || ''}`.toLowerCase();
     const matchQuery = !query || fullSearchStr.includes(query);
-    const matchStatus = !status || normalizeStatus(item.status) === normalizeStatus(status) || item.status === status;
+
+    const norm = normalizeStatus(item.status);
+    let matchStatus = true;
+
+    if (status === "active") {
+      // ซ่อนเคสที่ไม่สนใจ และเคสที่ไม่เข้าเงื่อนไข
+      matchStatus = (norm !== "ลูกค้าไม่สนใจ" && norm !== "ไม่เข้าเงื่อนไข");
+    } else if (status === "all" || !status) {
+      matchStatus = true;
+    } else {
+      matchStatus = (norm === normalizeStatus(status) || item.status === status);
+    }
+
     const matchType = !type || item.vehicleType === type;
 
     return matchQuery && matchStatus && matchType;

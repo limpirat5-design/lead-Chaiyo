@@ -392,13 +392,14 @@
           </div>
 
           <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full md:w-auto items-center">
-            <select id="statusFilter" onchange="filterCustomerTable()" class="neu-input text-xs py-2 font-bold">
-              <option value="">ทุกสถานะงาน</option>
-              <option value="นัดหมายเข้าสาขา">📅 นัดหมายเข้าสาขา</option>
-              <option value="ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)">⏳ ติดต่ออีกครั้ง 90 วัน</option>
-              <option value="อนุมัติ/รับเงินแล้ว">🎉 อนุมัติ/รับเงินแล้ว</option>
-              <option value="ลูกค้าไม่สนใจ">🚫 ลูกค้าไม่สนใจ</option>
-              <option value="ไม่เข้าเงื่อนไข">❌ ไม่เข้าเงื่อนไข</option>
+            <select id="statusFilter" onchange="filterCustomerTable()" class="neu-input text-xs py-2 font-bold text-slate-800">
+              <option value="active" selected>🎯 เคสกำลังติดตาม (ซ่อนไม่สนใจ/ไม่ผ่าน)</option>
+              <option value="all">📋 ทุกสถานะงาน (รวมทั้งหมด)</option>
+              <option value="นัดหมายเข้าสาขา">📅 1. นัดหมายเข้าสาขา</option>
+              <option value="ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)">⏳ 2. ติดต่ออีกครั้ง 90 วัน</option>
+              <option value="อนุมัติ/รับเงินแล้ว">🎉 3. อนุมัติ/รับเงินแล้ว</option>
+              <option value="ลูกค้าไม่สนใจ">🚫 4. ลูกค้าไม่สนใจ</option>
+              <option value="ไม่เข้าเงื่อนไข">❌ 5. ไม่เข้าเงื่อนไข</option>
             </select>
 
             <select id="typeFilter" onchange="filterCustomerTable()" class="neu-input text-xs py-2 font-bold">
