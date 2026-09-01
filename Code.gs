@@ -13,6 +13,7 @@ const SHEET_NAME = "ข้อมูลลูกค้าสินเชื่อ
 const SUMMARY_SHEET_NAME = "สรุปผลงาน_รายเดือน_รายปี";
 const OLD_CONTACT_SHEET_NAME = "ข้อมูลลูกค้าติดต่อ";
 const REGIONAL_TARGET_SHEET_NAME = "เป้าหมาย_เขตราชบุรี";
+const DEBT_SHEET_NAME = "รายการหนี้ค้าง_สาขา";
 
 // 3. URL หน้าเว็บแอป & โลโก้ของสาขาเขาช่องพราน
 const WEB_APP_URL = "https://limpirat5-design.github.io/lead-Chaiyo/";
@@ -684,12 +685,14 @@ function doGet(e) {
     });
     
     const regionalChecklist = getRegionalTargetChecklistData(getSpreadsheet());
+    const debtList = getDebtCollectionList(getSpreadsheet());
 
     return jsonResponse({
       success: true,
       data: customers.reverse(),
       stats: calculateStats(customers),
-      regionalChecklist: regionalChecklist
+      regionalChecklist: regionalChecklist,
+      debtList: debtList
     });
   } catch (error) {
     return jsonResponse({ success: false, message: error.toString() });
@@ -886,6 +889,18 @@ function doPost(e) {
       }
       
       return jsonResponse({ success: true, message: "อัปเดตข้อมูลเรียบร้อยแล้ว" });
+    }
+
+    // Action 3: บันทึกผลการติดตามหนี้ (Debt Follow-up)
+    if (action === "save_debt_followup") {
+      const result = saveDebtFollowupStatus(payload);
+      return jsonResponse(result);
+    }
+
+    // Action 4: นำเข้าข้อมูลลูกหนี้จาก Excel ประจำวัน
+    if (action === "import_debt_records") {
+      const result = importDebtExcelRecords(payload.records || []);
+      return jsonResponse(result);
     }
     
     return jsonResponse({ success: false, message: "ไม่พบคำสั่งที่ระบุ" });
@@ -1627,4 +1642,177 @@ function getAutoSyncStatus() {
     config: configStr ? JSON.parse(configStr) : { enabled: false, status: "ยังไม่ได้เปิดใช้งาน" },
     lastSync: lastLogStr ? JSON.parse(lastLogStr) : { status: "ยังไม่มีประวัติการซิงค์", timestamp: "-" }
   };
+}
+
+// ==============================================================================
+// 📋 โมดูลระบบติดตามหนี้ & บริหารลูกหนี้ค้างชำระ (Debt Collection & Recovery Module)
+// ==============================================================================
+
+function getOrCreateDebtSheet(ss) {
+  if (!ss) ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(DEBT_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(DEBT_SHEET_NAME);
+    const headers = [
+      "เลขที่สัญญา (Contract No.)",
+      "ชื่อ - สกุล ลูกค้า",
+      "เบอร์โทรศัพท์",
+      "ประเภทหลักประกัน",
+      "ทะเบียนรถ / รายละเอียด",
+      "ยอดหนี้คงค้าง (OS Balance)",
+      "ค่างวดค้างชำระ (Overdue Amt)",
+      "จำนวนวันค้าง (X-day)",
+      "กลุ่มหนี้ (Bucket)",
+      "สถานะการติดตาม",
+      "วันนัดชำระ",
+      "ผู้ติดตาม",
+      "บันทึกผลการเจรจา",
+      "วันที่อัปเดตล่าสุด"
+    ];
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setBackground("#881337") // สีแดงเข้มไวน์ (Rose 900)
+      .setFontColor("#FFFFFF")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+    sheet.setFrozenRows(1);
+
+    // ตัวอย่างข้อมูลลูกหนี้สาขาเขาช่องพราน
+    const sampleDebts = [
+      ["CT-6901-0021", "นายสมชาย ใจดี", "081-234-5678", "รถกระบะ", "บท-1234 ราชบุรี", 250000, 7500, 15, "1-30 วัน", "นัดหมายเข้าสาขา", "10/09/2569", "พนักงานสาขา", "แจ้งว่าจะเข้ามาจ่ายวันศุกร์", "2026-09-01 10:00:00"],
+      ["CT-6902-0045", "นางสมศรี มีทรัพย์", "089-876-5432", "มอเตอร์ไซค์", "1กข-5678 ราชบุรี", 45000, 1800, 42, "31-60 วัน", "ติดต่ออีกครั้ง", "08/09/2569", "พนักงานสาขา", "รอเงินเดือนออกวันที่ 5", "2026-09-01 11:30:00"],
+      ["CT-6903-0102", "นายบุญมี รักชาติ", "086-555-9988", "รถเพื่อการเกษตร", "แทรกเตอร์ Kubota", 380000, 14200, 75, "61-90 วัน", "ติดต่อไม่ได้", "-", "พนักงานสาขา", "โทรไปไม่รับสาย ส่งข้อความแล้ว", "2026-09-01 14:00:00"]
+    ];
+    sheet.getRange(2, 1, sampleDebts.length, headers.length).setValues(sampleDebts);
+  }
+  return sheet;
+}
+
+function getDebtCollectionList(ss) {
+  try {
+    const sheet = getOrCreateDebtSheet(ss);
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+
+    const rows = data.slice(1);
+    return rows
+      .filter(r => r[0] && String(r[0]).trim() !== "")
+      .map((r, idx) => ({
+        id: String(r[0]).trim(),
+        name: String(r[1] || "").trim(),
+        phone: String(r[2] || "").trim(),
+        vehicleType: String(r[3] || "มอเตอร์ไซค์").trim(),
+        licensePlate: String(r[4] || "").trim(),
+        osAmount: parseNumericAmount(r[5]),
+        overdueAmount: parseNumericAmount(r[6]),
+        overdueDays: parseInt(r[7], 10) || 0,
+        bucket: String(r[8] || "1-30 วัน").trim(),
+        status: String(r[9] || "ยังไม่ได้ติดต่อ").trim(),
+        appointmentDate: r[10] || "-",
+        officer: String(r[11] || "").trim(),
+        note: String(r[12] || "").trim(),
+        updatedAt: r[13] || ""
+      }));
+  } catch (err) {
+    Logger.log("getDebtCollectionList Error: " + err.toString());
+    return [];
+  }
+}
+
+function saveDebtFollowupStatus(payload) {
+  try {
+    const sheet = getOrCreateDebtSheet();
+    const data = sheet.getDataRange().getValues();
+    let targetRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === String(payload.id).trim()) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return { success: false, message: "ไม่พบเลขที่สัญญานี้ในรายการติดตามหนี้" };
+    }
+
+    if (payload.status) sheet.getRange(targetRow, 10).setValue(payload.status);
+    if (payload.appointmentDate !== undefined) sheet.getRange(targetRow, 11).setValue(payload.appointmentDate || "-");
+    if (payload.officer !== undefined) sheet.getRange(targetRow, 12).setValue(payload.officer || "");
+    if (payload.note !== undefined) sheet.getRange(targetRow, 13).setValue(payload.note || "");
+
+    const nowStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
+    sheet.getRange(targetRow, 14).setValue(nowStr);
+
+    return { success: true, message: "บันทึกผลการติดตามหนี้สำเร็จ" };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
+}
+
+function importDebtExcelRecords(records) {
+  try {
+    if (!records || !Array.isArray(records) || records.length === 0) {
+      return { success: false, message: "ไม่มีข้อมูลในไฟล์ Excel ที่ระบุ" };
+    }
+
+    const sheet = getOrCreateDebtSheet();
+    const existingData = sheet.getDataRange().getValues();
+    const existingContractMap = {};
+    for (let i = 1; i < existingData.length; i++) {
+      const contractNo = String(existingData[i][0]).trim();
+      if (contractNo) existingContractMap[contractNo] = i + 1;
+    }
+
+    let insertedCount = 0;
+    let updatedCount = 0;
+    const nowStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
+
+    records.forEach(rec => {
+      const contractNo = String(rec.id || rec.contractNo || "").trim();
+      if (!contractNo) return;
+
+      const overdueDays = parseInt(rec.overdueDays, 10) || 0;
+      let bucket = "1-30 วัน";
+      if (overdueDays > 90) bucket = "NPL (>90 วัน)";
+      else if (overdueDays > 60) bucket = "61-90 วัน";
+      else if (overdueDays > 30) bucket = "31-60 วัน";
+
+      if (existingContractMap[contractNo]) {
+        const rowIdx = existingContractMap[contractNo];
+        if (rec.osAmount !== undefined) sheet.getRange(rowIdx, 6).setValue(parseNumericAmount(rec.osAmount));
+        if (rec.overdueAmount !== undefined) sheet.getRange(rowIdx, 7).setValue(parseNumericAmount(rec.overdueAmount));
+        sheet.getRange(rowIdx, 8).setValue(overdueDays);
+        sheet.getRange(rowIdx, 9).setValue(bucket);
+        sheet.getRange(rowIdx, 14).setValue(nowStr);
+        updatedCount++;
+      } else {
+        const newRow = [
+          contractNo,
+          rec.name || "",
+          rec.phone || "",
+          rec.vehicleType || "มอเตอร์ไซค์",
+          rec.licensePlate || "",
+          parseNumericAmount(rec.osAmount),
+          parseNumericAmount(rec.overdueAmount),
+          overdueDays,
+          bucket,
+          rec.status || "ยังไม่ได้ติดต่อ",
+          rec.appointmentDate || "-",
+          rec.officer || "พนักงานสาขา",
+          rec.note || "",
+          nowStr
+        ];
+        sheet.appendRow(newRow);
+        insertedCount++;
+      }
+    });
+
+    return {
+      success: true,
+      message: `นำเข้าข้อมูลหนี้ค้างสำเร็จ: เพิ่มใหม่ ${insertedCount} ราย, อัปเดต ${updatedCount} ราย`
+    };
+  } catch (err) {
+    return { success: false, message: err.toString() };
+  }
 }

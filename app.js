@@ -510,7 +510,7 @@ function handleBrandChange(brand) {
  * สลับแท็บเมนู
  */
 function switchTab(tabId) {
-  const tabs = ["form", "list", "dashboard"];
+  const tabs = ["form", "list", "dashboard", "debt"];
   
   tabs.forEach(tab => {
     const el = document.getElementById(`tab-${tab}`);
@@ -537,6 +537,11 @@ function switchTab(tabId) {
   if (tabId === "dashboard") {
     renderDashboard();
     renderRegionalChecklist();
+  }
+
+  if (tabId === "debt") {
+    renderDebtDashboard();
+    renderDebtTable();
   }
 
   initLucideIcons();
@@ -673,11 +678,16 @@ async function loadCustomerData() {
       if (Array.isArray(result.regionalChecklist) && result.regionalChecklist.length > 0) {
         regionalChecklistData = result.regionalChecklist;
       }
+      if (Array.isArray(result.debtList) && result.debtList.length > 0) {
+        debtDataList = result.debtList;
+      }
       updateSyncStatus("online", "เชื่อมต่อ Google Sheets สำเร็จ");
       renderCustomerTable(customerDataList);
       updateTodayTasksBanner();
       populateDashboardMonthSelect(customerDataList);
       renderRegionalChecklist(regionalChecklistData);
+      renderDebtDashboard();
+      renderDebtTable();
       if (document.getElementById("tab-dashboard") && !document.getElementById("tab-dashboard").classList.contains("hidden")) {
         renderDashboard();
       }
@@ -2619,4 +2629,469 @@ function renderRegionalChecklist() {
   }
 
   initLucideIcons();
+}
+
+// ==============================================================================
+// 📋 โมดูลระบบติดตามหนี้ & รายงานยอดหนี้ประจำวัน (Debt Collection Frontend Engine)
+// ==============================================================================
+
+let debtDataList = [
+  { id: "CT-6901-0021", name: "นายสมชาย ใจดี", phone: "081-234-5678", vehicleType: "รถกระบะ", licensePlate: "บท-1234 ราชบุรี", osAmount: 250000, overdueAmount: 7500, overdueDays: 15, bucket: "1-30 วัน", status: "นัดหมายเข้าสาขา", appointmentDate: "10/09/2569", officer: "พนักงานสาขา", note: "แจ้งว่าจะเข้ามาจ่ายวันศุกร์", updatedAt: "2026-09-01 10:00" },
+  { id: "CT-6902-0045", name: "นางสมศรี มีทรัพย์", phone: "089-876-5432", vehicleType: "มอเตอร์ไซค์", licensePlate: "1กข-5678 ราชบุรี", osAmount: 45000, overdueAmount: 1800, overdueDays: 42, bucket: "31-60 วัน", status: "ติดต่ออีกครั้ง", appointmentDate: "08/09/2569", officer: "พนักงานสาขา", note: "รอเงินเดือนออกวันที่ 5", updatedAt: "2026-09-01 11:30" },
+  { id: "CT-6903-0102", name: "นายบุญมี รักชาติ", phone: "086-555-9988", vehicleType: "รถเพื่อการเกษตร", licensePlate: "แทรกเตอร์ Kubota", osAmount: 380000, overdueAmount: 14200, overdueDays: 75, bucket: "61-90 วัน", status: "ติดต่อไม่ได้", appointmentDate: "-", officer: "พนักงานสาขา", note: "โทรไปไม่รับสาย ส่งข้อความแล้ว", updatedAt: "2026-09-01 14:00" },
+  { id: "CT-6904-0155", name: "นายประเสริฐ ยิ่งเจริญ", phone: "082-333-7711", vehicleType: "รถเก๋ง", licensePlate: "กข-9900 ราชบุรี", osAmount: 180000, overdueAmount: 5400, overdueDays: 105, bucket: "NPL (>90 วัน)", status: "ขอประนอมหนี้", appointmentDate: "12/09/2569", officer: "พนักงานสาขา", note: "ขอปรับโครงสร้างหนี้ลดค่างวด", updatedAt: "2026-09-01 15:30" }
+];
+
+let selectedDebtBucket = "all";
+let debtSearchQuery = "";
+
+function filterDebtByBucket(bucket) {
+  selectedDebtBucket = bucket;
+  const buckets = ["all", "1-30", "31-60", "61-90", "NPL", "paid"];
+
+  buckets.forEach(b => {
+    const btn = document.getElementById(`debtBucketTab-${b}`);
+    if (btn) {
+      if (b === bucket) {
+        btn.className = "px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-900 font-black whitespace-nowrap border border-slate-300";
+      } else {
+        btn.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-bold whitespace-nowrap";
+      }
+    }
+  });
+
+  renderDebtTable();
+}
+
+function handleDebtSearch(val) {
+  debtSearchQuery = String(val || "").toLowerCase().trim();
+  renderDebtTable();
+}
+
+function handleDebtExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === "undefined") {
+    alert("ไลบรารีอ่านไฟล์ Excel ยังโหลดไม่เสร็จ กรุณารีเฟรชหน้าเว็บอีกครั้งครับ");
+    return;
+  }
+
+  showToast("⏳ กำลังอ่านไฟล์ Excel ลูกหนี้จากฝ่ายตามหนี้...");
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (jsonRows && jsonRows.length > 1) {
+        const parsedDebts = parseDebtExcelRows(jsonRows);
+        if (parsedDebts.length > 0) {
+          debtDataList = parsedDebts;
+          renderDebtDashboard();
+          renderDebtTable();
+          showToast(`✅ นำเข้าข้อมูลลูกหนี้สำเร็จ ${parsedDebts.length} รายการ!`);
+          triggerCelebrationConfetti();
+
+          // Sync to backend if API URL is set
+          if (currentApiUrl) {
+            fetch(currentApiUrl, {
+              method: "POST",
+              body: JSON.stringify({ action: "import_debt_records", records: parsedDebts })
+            }).catch(console.error);
+          }
+        } else {
+          throw new Error("ไม่พบแถวข้อมูลที่ถูกต้องในไฟล์");
+        }
+      } else {
+        throw new Error("ไฟล์ไม่มีข้อมูล");
+      }
+    } catch (err) {
+      console.error("Debt Excel parse error:", err);
+      alert("เกิดข้อผิดพลาดในการอ่านไฟล์: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseDebtExcelRows(rows) {
+  let headerRowIdx = 0;
+  for (let r = 0; r < Math.min(5, rows.length); r++) {
+    const rowStr = (rows[r] || []).join(" ").toLowerCase();
+    if (rowStr.includes("สัญญา") || rowStr.includes("contract") || rowStr.includes("ชื่อ") || rowStr.includes("ยอด")) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+
+  const headerRow = rows[headerRowIdx] || [];
+  let colContract = -1, colName = -1, colPhone = -1, colVehicle = -1, colPlate = -1, colOs = -1, colOverdue = -1, colDays = -1;
+
+  headerRow.forEach((col, idx) => {
+    const str = String(col || "").toLowerCase().trim();
+    if (str.includes("สัญญา") || str.includes("contract")) colContract = idx;
+    else if (str.includes("ชื่อ") || str.includes("name") || str.includes("ลูกค้า")) colName = idx;
+    else if (str.includes("โทร") || str.includes("phone") || str.includes("tel")) colPhone = idx;
+    else if (str.includes("หลักประกัน") || str.includes("ประเภท") || str.includes("vehicle")) colVehicle = idx;
+    else if (str.includes("ทะเบียน") || str.includes("plate")) colPlate = idx;
+    else if (str.includes("os") || str.includes("คงค้าง") || str.includes("ยอดหนี้")) colOs = idx;
+    else if (str.includes("ค่างวด") || str.includes("ยอดค้าง") || str.includes("overdue")) colOverdue = idx;
+    else if (str.includes("วัน") || str.includes("day") || str.includes("x-day") || str.includes("x_day")) colDays = idx;
+  });
+
+  const parsed = [];
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || row.length === 0) continue;
+
+    const contractNo = String(row[colContract !== -1 ? colContract : 0] || "").trim();
+    if (!contractNo) continue;
+
+    const overdueDays = colDays !== -1 ? (parseInt(row[colDays], 10) || 0) : 15;
+    let bucket = "1-30 วัน";
+    if (overdueDays > 90) bucket = "NPL (>90 วัน)";
+    else if (overdueDays > 60) bucket = "61-90 วัน";
+    else if (overdueDays > 30) bucket = "31-60 วัน";
+
+    parsed.push({
+      id: contractNo,
+      name: colName !== -1 ? String(row[colName] || "").trim() : "ลูกค้า",
+      phone: colPhone !== -1 ? String(row[colPhone] || "").trim() : "-",
+      vehicleType: colVehicle !== -1 ? String(row[colVehicle] || "มอเตอร์ไซค์").trim() : "มอเตอร์ไซค์",
+      licensePlate: colPlate !== -1 ? String(row[colPlate] || "").trim() : "",
+      osAmount: colOs !== -1 ? parseNumericAmount(row[colOs]) : 0,
+      overdueAmount: colOverdue !== -1 ? parseNumericAmount(row[colOverdue]) : 0,
+      overdueDays: overdueDays,
+      bucket: bucket,
+      status: "ยังไม่ได้ติดต่อ",
+      appointmentDate: "-",
+      officer: "พนักงานสาขา",
+      note: "",
+      updatedAt: Utilities ? Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm") : new Date().toLocaleDateString("th-TH")
+    });
+  }
+
+  return parsed;
+}
+
+function renderDebtDashboard() {
+  let totalOverdue = 0;
+  let appointedCount = 0;
+  let paidCount = 0;
+  let bucketCounts = { "1-30": 0, "31-60": 0, "61-90": 0, "NPL": 0, "paid": 0 };
+
+  debtDataList.forEach(d => {
+    totalOverdue += parseNumericAmount(d.overdueAmount);
+    if (d.status === "ชำระแล้ว") {
+      paidCount++;
+      bucketCounts["paid"]++;
+    } else {
+      if (d.overdueDays > 90) bucketCounts["NPL"]++;
+      else if (d.overdueDays > 60) bucketCounts["61-90"]++;
+      else if (d.overdueDays > 30) bucketCounts["31-60"]++;
+      else bucketCounts["1-30"]++;
+    }
+
+    if (d.status === "นัดหมายเข้าสาขา" || d.status === "นัดชำระโอน") {
+      appointedCount++;
+    }
+  });
+
+  const totalCases = debtDataList.length;
+
+  const totalOverdueEl = document.getElementById("kpiDebtTotalOverdue");
+  const totalCasesEl = document.getElementById("kpiDebtTotalCases");
+  const appointedEl = document.getElementById("kpiDebtAppointedCases");
+  const paidEl = document.getElementById("kpiDebtPaidCases");
+  const badgeTabEl = document.getElementById("tabDebtBadge");
+
+  if (totalOverdueEl) totalOverdueEl.innerHTML = `${totalOverdue.toLocaleString()} <span class="text-xs font-normal">บาท</span>`;
+  if (totalCasesEl) totalCasesEl.innerHTML = `${totalCases} <span class="text-xs font-normal">ราย</span>`;
+  if (appointedEl) appointedEl.innerHTML = `${appointedCount} <span class="text-xs font-normal">ราย</span>`;
+  if (paidEl) paidEl.innerHTML = `${paidCount} <span class="text-xs font-normal">ราย</span>`;
+
+  if (badgeTabEl) {
+    const pendingCases = totalCases - paidCount;
+    if (pendingCases > 0) {
+      badgeTabEl.textContent = pendingCases;
+      badgeTabEl.classList.remove("hidden");
+    } else {
+      badgeTabEl.classList.add("hidden");
+    }
+  }
+
+  const setC = (id, count) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = count;
+  };
+  setC("countBucketAll", totalCases);
+  setC("countBucket1", bucketCounts["1-30"]);
+  setC("countBucket2", bucketCounts["31-60"]);
+  setC("countBucket3", bucketCounts["61-90"]);
+  setC("countBucketNPL", bucketCounts["NPL"]);
+  setC("countBucketPaid", bucketCounts["paid"]);
+}
+
+function renderDebtTable() {
+  const container = document.getElementById("debtTableContainer");
+  if (!container) return;
+
+  const filtered = debtDataList.filter(d => {
+    // Bucket filter
+    if (selectedDebtBucket === "paid" && d.status !== "ชำระแล้ว") return false;
+    if (selectedDebtBucket !== "all" && selectedDebtBucket !== "paid") {
+      if (d.status === "ชำระแล้ว") return false;
+      if (selectedDebtBucket === "1-30" && (d.overdueDays < 1 || d.overdueDays > 30)) return false;
+      if (selectedDebtBucket === "31-60" && (d.overdueDays < 31 || d.overdueDays > 60)) return false;
+      if (selectedDebtBucket === "61-90" && (d.overdueDays < 61 || d.overdueDays > 90)) return false;
+      if (selectedDebtBucket === "NPL" && d.overdueDays <= 90) return false;
+    }
+
+    // Search query
+    if (debtSearchQuery) {
+      const fullStr = `${d.id} ${d.name} ${d.phone} ${d.licensePlate} ${d.officer} ${d.note}`.toLowerCase();
+      if (!fullStr.includes(debtSearchQuery)) return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-10 neu-card p-6 border border-slate-200 text-slate-500 text-xs font-semibold">
+        🍃 ไม่พบรายการลูกหนี้ในเงื่อนไขที่เลือก
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="overflow-x-auto rounded-2xl border border-slate-300 shadow-sm bg-white">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="bg-rose-950 text-white font-black text-[11px] whitespace-nowrap">
+            <th class="py-3 px-3">เลขที่สัญญา / ลูกค้า</th>
+            <th class="py-3 px-3">หลักประกัน / ทะเบียน</th>
+            <th class="py-3 px-3 text-right">ยอดค้าง / OS คงเหลือ</th>
+            <th class="py-3 px-3 text-center">วันค้าง (X-day)</th>
+            <th class="py-3 px-3 text-center">สถานะการติดตาม</th>
+            <th class="py-3 px-3 text-center">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          ${filtered.map((d, idx) => {
+            const isPaid = d.status === "ชำระแล้ว";
+            let bucketBadge = "bg-emerald-100 text-emerald-800 border-emerald-300";
+            if (d.overdueDays > 90) bucketBadge = "bg-purple-100 text-purple-900 border-purple-300";
+            else if (d.overdueDays > 60) bucketBadge = "bg-rose-100 text-rose-900 border-rose-300";
+            else if (d.overdueDays > 30) bucketBadge = "bg-amber-100 text-amber-900 border-amber-300";
+
+            let statusColor = "bg-slate-100 text-slate-800 border-slate-200";
+            if (isPaid) statusColor = "bg-emerald-100 text-emerald-800 border-emerald-300 font-black";
+            else if (d.status.includes("นัด")) statusColor = "bg-sky-100 text-sky-800 border-sky-300 font-bold";
+            else if (d.status.includes("ไม่ได้")) statusColor = "bg-rose-100 text-rose-800 border-rose-300 font-bold";
+
+            return `
+              <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-rose-50/50 transition-colors">
+                <td class="py-3 px-3">
+                  <div class="font-mono text-[10px] text-slate-400 font-bold">${escapeHtml(d.id)}</div>
+                  <div class="font-black text-slate-900 text-xs sm:text-sm">${escapeHtml(d.name)}</div>
+                  <div class="mt-0.5">
+                    <a href="tel:${escapeHtml(d.phone)}" class="text-sky-700 font-bold text-[11px] inline-flex items-center gap-1 hover:underline">
+                      <i data-lucide="phone" class="w-3 h-3 text-sky-600"></i>
+                      ${escapeHtml(d.phone)}
+                    </a>
+                  </div>
+                </td>
+                <td class="py-3 px-3">
+                  <div class="font-bold text-slate-800">${escapeHtml(d.vehicleType)}</div>
+                  <div class="text-[11px] text-slate-500 font-mono font-bold">${escapeHtml(d.licensePlate || "-")}</div>
+                </td>
+                <td class="py-3 px-3 text-right whitespace-nowrap">
+                  <div class="font-black text-rose-600 text-xs sm:text-sm">ค้าง ${parseNumericAmount(d.overdueAmount).toLocaleString()} บ.</div>
+                  <div class="text-[10px] text-slate-500 font-medium">OS ${parseNumericAmount(d.osAmount).toLocaleString()} บ.</div>
+                </td>
+                <td class="py-3 px-3 text-center whitespace-nowrap">
+                  <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${bucketBadge}">
+                    ${d.overdueDays} วัน
+                  </span>
+                </td>
+                <td class="py-3 px-3 text-center whitespace-nowrap">
+                  <span class="text-[11px] px-2.5 py-0.5 rounded-full border ${statusColor}">
+                    ${escapeHtml(d.status)}
+                  </span>
+                  ${d.appointmentDate && d.appointmentDate !== '-' ? `<div class="text-[10px] text-slate-500 font-bold mt-1">นัด: ${escapeHtml(d.appointmentDate)}</div>` : ''}
+                </td>
+                <td class="py-3 px-3 text-center whitespace-nowrap">
+                  <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="copyDebtLineReminder('${d.id}')" class="neu-button p-1.5 text-xs text-emerald-800 border border-emerald-200" title="คัดลอกข้อความทวงถาม LINE">
+                      <i data-lucide="message-square" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    </button>
+                    <button onclick="openDebtUpdateModal('${d.id}')" class="neu-button px-2.5 py-1 text-xs text-rose-950 font-black border border-rose-200 flex items-center gap-1" title="อัปเดตผลการติดตาม">
+                      <i data-lucide="edit-2" class="w-3.5 h-3.5 text-rose-600"></i>
+                      <span>อัปเดต</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  initLucideIcons();
+}
+
+function copyDebtLineReminder(contractNo) {
+  const item = debtDataList.find(d => d.id === contractNo);
+  if (!item) return;
+
+  const msg = [
+    `สวัสดีครับคุณ ${item.name}`,
+    `จาก เงินไชโย (สาขาเขาช่องพราน) นะครับ 🙏`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `ขออนุญาตแจ้งยอดค้างชำระสินเชื่อ ${item.vehicleType} (${item.licensePlate || 'สัญญา ' + item.id})`,
+    `• ยอดค่างวดค้างชำระ: ${parseNumericAmount(item.overdueAmount).toLocaleString()} บาท`,
+    `• ยอดหนี้คงเหลือรวม: ${parseNumericAmount(item.osAmount).toLocaleString()} บาท`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `หากคุณลูกค้าชำระเรียบร้อยแล้วสามารถส่งสลิปมาทางนี้ได้เลยครับ`,
+    `หากติดปัญหาหรือต้องการสอบถามเพิ่มเติม ติดต่อสาขาเขาช่องพรานได้ตลอดเวลาครับ ขอบคุณครับ 😊`
+  ].join("\n");
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      showToast(`💬 คัดลอกข้อความ LINE แจ้งยอดค้างของ 'คุณ ${item.name}' แล้ว!`);
+      triggerCelebrationConfetti();
+    }).catch(() => {
+      prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
+    });
+  } else {
+    prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
+  }
+}
+
+function openDebtUpdateModal(contractNo) {
+  const item = debtDataList.find(d => d.id === contractNo);
+  if (!item) return;
+
+  const modal = document.getElementById("debtUpdateModal");
+  const contractLabel = document.getElementById("modalDebtContractLabel");
+  const custInfo = document.getElementById("modalDebtCustomerInfo");
+  const idInput = document.getElementById("modalDebtId");
+  const statusSelect = document.getElementById("modalDebtStatusSelect");
+  const appointInput = document.getElementById("modalDebtAppointDate");
+  const officerInput = document.getElementById("modalDebtOfficer");
+  const noteInput = document.getElementById("modalDebtNote");
+
+  if (contractLabel) contractLabel.textContent = `สัญญา: ${item.id} (${item.vehicleType} ${item.licensePlate})`;
+  if (idInput) idInput.value = item.id;
+  if (statusSelect) statusSelect.value = item.status || "นัดหมายเข้าสาขา";
+  if (appointInput) appointInput.value = item.appointmentDate && item.appointmentDate !== '-' ? item.appointmentDate : "";
+  if (officerInput) officerInput.value = item.officer || "พนักงานสาขาเขาช่องพราน";
+  if (noteInput) noteInput.value = item.note || "";
+
+  if (custInfo) {
+    custInfo.innerHTML = `
+      <div class="flex justify-between items-center text-xs font-bold text-slate-800">
+        <span>👤 ${escapeHtml(item.name)} (📞 ${escapeHtml(item.phone)})</span>
+        <span class="text-rose-600 font-black">ค้าง ${parseNumericAmount(item.overdueAmount).toLocaleString()} บ. (${item.overdueDays} วัน)</span>
+      </div>
+    `;
+  }
+
+  if (modal) modal.classList.remove("hidden");
+  initLucideIcons();
+}
+
+function closeDebtUpdateModal() {
+  const modal = document.getElementById("debtUpdateModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function handleDebtFormSubmit(e) {
+  e.preventDefault();
+
+  const contractNo = document.getElementById("modalDebtId")?.value;
+  const status = document.getElementById("modalDebtStatusSelect")?.value;
+  const appointDate = document.getElementById("modalDebtAppointDate")?.value || "-";
+  const officer = document.getElementById("modalDebtOfficer")?.value || "พนักงานสาขา";
+  const note = document.getElementById("modalDebtNote")?.value || "";
+
+  const item = debtDataList.find(d => d.id === contractNo);
+  if (item) {
+    item.status = status;
+    item.appointmentDate = appointDate;
+    item.officer = officer;
+    item.note = note;
+    item.updatedAt = new Date().toISOString();
+  }
+
+  closeDebtUpdateModal();
+  renderDebtDashboard();
+  renderDebtTable();
+  showToast(`✅ บันทึกผลการติดตามสัญญา '${contractNo}' สำเร็จ!`);
+
+  if (currentApiUrl) {
+    try {
+      await fetch(currentApiUrl, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "save_debt_followup",
+          id: contractNo,
+          status: status,
+          appointmentDate: appointDate,
+          officer: officer,
+          note: note
+        })
+      });
+    } catch (err) {
+      console.error("Save debt followup error:", err);
+    }
+  }
+}
+
+function copyDebtDailyExecutiveReport() {
+  let totalOverdue = 0;
+  let appointedList = [];
+  let paidList = [];
+  let unreachableList = [];
+
+  debtDataList.forEach(d => {
+    totalOverdue += parseNumericAmount(d.overdueAmount);
+    if (d.status === "ชำระแล้ว") paidList.push(d);
+    else if (d.status.includes("นัด")) appointedList.push(d);
+    else if (d.status.includes("ไม่ได้")) unreachableList.push(d);
+  });
+
+  const now = new Date();
+  const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear() + 543}`;
+
+  const msg = [
+    `📊 รายงานการติดตามหนี้ประจำวัน สาขาเขาช่องพราน (เขตราชบุรี)`,
+    `📅 วันที่: ${dateStr}`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `• ลูกหนี้ที่ต้องติดตามทั้งหมด: ${debtDataList.length} ราย`,
+    `• ยอดหนี้ค้างรวม: ${totalOverdue.toLocaleString()} บาท`,
+    `• นัดชำระแล้ว: ${appointedList.length} ราย`,
+    `• ชำระเรียบร้อยแล้ว: ${paidList.length} ราย ✅`,
+    `• ติดต่อไม่ได้/รอติดตามซ้ำ: ${unreachableList.length} ราย`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `✨ ข้อมูลจากระบบติดตามหนี้ เงินไชโย (สาขาเขาช่องพราน)`
+  ].join("\n");
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      showToast("📋 คัดลอกรายงานสรุปติดตามหนี้ส่ง LINE เขตเรียบร้อยแล้ว!");
+      triggerCelebrationConfetti();
+    }).catch(() => {
+      prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
+    });
+  } else {
+    prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
+  }
 }
