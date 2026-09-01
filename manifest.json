@@ -1,0 +1,20 @@
+{
+  "name": "เงินไชโย สาขาเขาช่องพราน | ระบบสินเชื่อ",
+  "short_name": "เงินไชโย",
+  "description": "ระบบบันทึกและบริหารงานลูกค้าสินเชื่อ เงินไชโย สาขาเขาช่องพราน (เขตราชบุรี)",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8FAFC",
+  "theme_color": "#FF6B00",
+  "lang": "th-TH",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

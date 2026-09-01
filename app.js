@@ -2620,3 +2620,91 @@ function renderRegionalChecklist() {
 
   initLucideIcons();
 }
+
+// ==============================================================================
+// 📲 Progressive Web App (PWA) & Add-to-Home-Screen Engine
+// ==============================================================================
+
+let deferredPwaPrompt = null;
+
+// 1. ลงทะเบียน Service Worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then((reg) => {
+        console.log("✅ [PWA] Service Worker ลงทะเบียนสำเร็จ:", reg.scope);
+      })
+      .catch((err) => {
+        console.log("⚠️ [PWA] ไม่สามารถลงทะเบียน Service Worker:", err);
+      });
+  });
+}
+
+// 2. ดักจับ Event ก่อนแสดงปุ่มติดตั้ง (Android / Chrome / Edge)
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  const btn = document.getElementById("btnPwaInstall");
+  if (btn) {
+    btn.classList.remove("hidden");
+    btn.classList.add("animate-fade-in");
+  }
+});
+
+// ตรวจจับว่าเปิดในโหมดแอป Standalone อยู่แล้วหรือไม่
+window.addEventListener("appinstalled", () => {
+  console.log("🎉 [PWA] ติดตั้งแอปสำเร็จเรียบร้อยแล้ว!");
+  deferredPwaPrompt = null;
+  const btn = document.getElementById("btnPwaInstall");
+  if (btn) btn.classList.add("hidden");
+  showToast("🎉 ขอบคุณที่ติดตั้งแอปเงินไชโย สาขาเขาช่องพราน ครับ!");
+  triggerCelebrationConfetti();
+});
+
+// 3. ฟังก์ชันเมื่อผู้ใช้กดปุ่ม '📲 ติดตั้งแอป'
+function handlePwaInstallClick() {
+  const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+  if (isStandalone) {
+    showToast("✨ คุณกำลังเปิดใช้งานผ่านแอปอยู่แล้วครับ!");
+    return;
+  }
+
+  if (deferredPwaPrompt) {
+    deferredPwaPrompt.prompt();
+    deferredPwaPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === "accepted") {
+        console.log("User accepted the PWA install prompt");
+      }
+      deferredPwaPrompt = null;
+    });
+  } else if (isIos) {
+    openIosInstallModal();
+  } else {
+    // Android/Desktop fallback
+    openIosInstallModal();
+  }
+}
+
+function openIosInstallModal() {
+  const modal = document.getElementById("iosInstallModal");
+  if (modal) modal.classList.remove("hidden");
+  initLucideIcons();
+}
+
+function closeIosInstallModal() {
+  const modal = document.getElementById("iosInstallModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+// ถ้าเปิดบนมือถือ (iOS Safari) ให้แสดงปุ่มติดตั้งเสมอ
+window.addEventListener("DOMContentLoaded", () => {
+  const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+  const btn = document.getElementById("btnPwaInstall");
+
+  if (isIos && !isStandalone && btn) {
+    btn.classList.remove("hidden");
+  }
+});
