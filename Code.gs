@@ -12,6 +12,7 @@ const SPREADSHEET_ID = "1ZyAAAFpexARGPojAMWTc4RIeq-9RLoZkn7W7fWbMBbc";
 const SHEET_NAME = "ข้อมูลลูกค้าสินเชื่อ_เขาช่องพราน";
 const SUMMARY_SHEET_NAME = "สรุปผลงาน_รายเดือน_รายปี";
 const OLD_CONTACT_SHEET_NAME = "ข้อมูลลูกค้าติดต่อ";
+const REGIONAL_TARGET_SHEET_NAME = "เป้าหมาย_เขตราชบุรี";
 
 // 3. URL หน้าเว็บแอป & โลโก้ของสาขาเขาช่องพราน
 const WEB_APP_URL = "https://limpirat5-design.github.io/lead-Chaiyo/";
@@ -25,6 +26,59 @@ const LINE_TARGET_ID = "Ce28347e956cadb979061385ade15670d";
 
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+/**
+ * ฟังก์ชันช่วยแปลงตัวเลขยอดเงินให้ปลอดภัย (ตัด comma, ช่องว่าง, ตัวอักษร)
+ */
+function parseNumericAmount(val) {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(/,/g, "").replace(/[^0-9.-]/g, "").trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
+/**
+ * ตรวจสอบสถานะว่าเข้าข่าย "อนุมัติ" หรือไม่
+ */
+function isApprovedStatus(status) {
+  if (!status) return false;
+  const s = String(status).trim().toLowerCase();
+  return s.includes("อนุมัติ") || s.includes("approve") || s.includes("รับเงินแล้ว");
+}
+
+/**
+ * แปลงวันที่จาก String หรือ Date ให้อยู่ในรูป Date Object ที่ถูกต้อง
+ */
+function parseFlexDate(dateInput) {
+  if (!dateInput || dateInput === "-" || dateInput === "เมื่อสักครู่") return null;
+  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) return dateInput;
+
+  let str = String(dateInput).trim().replace(/น\.$/, "").trim();
+
+  let d = new Date(str.replace(" ", "T"));
+  if (!isNaN(d.getTime())) {
+    if (d.getFullYear() > 2400) {
+      d.setFullYear(d.getFullYear() - 543);
+    }
+    return d;
+  }
+
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (dmyMatch) {
+    let day = parseInt(dmyMatch[1], 10);
+    let month = parseInt(dmyMatch[2], 10) - 1;
+    let year = parseInt(dmyMatch[3], 10);
+    let hour = dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 0;
+    let minute = dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0;
+    let second = dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0;
+    if (year > 2400) year -= 543;
+    const resDate = new Date(year, month, day, hour, minute, second);
+    if (!isNaN(resDate.getTime())) return resDate;
+  }
+
+  return null;
+}
 
 /**
  * ⏰ ฟังก์ชันตั้งเวลาส่งสรุปและแจ้งเตือนอัตโนมัติประจำวัน
@@ -69,13 +123,22 @@ function sendMorningFollowUpToLine() {
   const sheet = getOrCreateSheet();
   const customers = fetchAllCustomersList(sheet);
   const now = new Date();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const dateThai = `${now.getDate()} ${THAI_MONTHS[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
 
-  // กรองเฉพาะลูกค้าที่ต้องติดตาม (นัดหมายเข้าสาขา / รอครบ 90 วัน / พึ่งโอน)
+  // กรองเฉพาะลูกค้าที่ต้องติดตามและถึงกำหนดวันนี้ (หรือเลยกำหนดแล้ว)
   const followUpList = [];
   customers.forEach(c => {
-    if (c.status === "นัดหมายเข้าสาขา" || c.status.includes("90 วัน") || c.status.includes("ติดตาม") || c.status.includes("ติดต่ออีกครั้ง")) {
-      followUpList.push(c);
+    const isFollowStatus = c.status === "นัดหมายเข้าสาขา" || c.status.includes("90 วัน") || c.status.includes("ติดตาม") || c.status.includes("ติดต่ออีกครั้ง");
+    if (isFollowStatus) {
+      if (c.appointmentDate && c.appointmentDate !== "-") {
+        const d = parseFlexDate(c.appointmentDate);
+        if (d && d <= todayEnd) {
+          followUpList.push(c);
+        }
+      } else {
+        followUpList.push(c);
+      }
     }
   });
 
@@ -591,10 +654,20 @@ function doGet(e) {
         }
       }
 
+      let updatedTimeStr = "";
+      if (row[14]) {
+        try {
+          updatedTimeStr = Utilities.formatDate(new Date(row[14]), "Asia/Bangkok", "yyyy-MM-dd HH:mm");
+        } catch (err) {
+          updatedTimeStr = String(row[14]);
+        }
+      }
+
       return {
         rowIndex: index + 2,
         id: row[0] || ("CY-" + (index + 1)),
         createdAt: createdTimeStr,
+        updatedAt: updatedTimeStr || createdTimeStr,
         name: row[2] || "",
         phone: row[3] || "",
         vehicleType: row[4] || "มอเตอร์ไซค์",
@@ -602,7 +675,7 @@ function doGet(e) {
         model: row[6] || "",
         year: row[7] || "",
         licensePlate: row[8] || "",
-        amount: Number(row[9]) || 0,
+        amount: parseNumericAmount(row[9]),
         status: row[10] || "นัดหมายเข้าสาขา",
         appointmentDate: row[11] || "-",
         officer: row[12] || "",
@@ -610,13 +683,81 @@ function doGet(e) {
       };
     });
     
+    const regionalChecklist = getRegionalTargetChecklistData(getSpreadsheet());
+
     return jsonResponse({
       success: true,
       data: customers.reverse(),
-      stats: calculateStats(customers)
+      stats: calculateStats(customers),
+      regionalChecklist: regionalChecklist
     });
   } catch (error) {
     return jsonResponse({ success: false, message: error.toString() });
+  }
+}
+
+/**
+ * ดึงข้อมูล Checklist และเป้าหมายเขตราชบุรี (สาขาเขาช่องพราน)
+ */
+function getRegionalTargetChecklistData(ss) {
+  try {
+    if (!ss) ss = getSpreadsheet();
+    let targetSheet = ss.getSheetByName(REGIONAL_TARGET_SHEET_NAME);
+    
+    // ถ้ายังไม่มีแท็บนี้ ให้สร้างแท็บพร้อมหัวตารางและข้อมูลตัวอย่างเริ่มต้น
+    if (!targetSheet) {
+      targetSheet = ss.insertSheet(REGIONAL_TARGET_SHEET_NAME);
+      const headers = [
+        "เดือน/งวด",
+        "สาขา",
+        "รายการเป้าหมาย / Checklist",
+        "เป้าหมาย (Target)",
+        "ทำได้จริง (Actual)",
+        "% สำเร็จ",
+        "สถานะ",
+        "อันดับในเขตราชบุรี",
+        "หมายเหตุ"
+      ];
+      targetSheet.appendRow(headers);
+      targetSheet.getRange(1, 1, 1, headers.length)
+        .setBackground("#0F172A")
+        .setFontColor("#FFFFFF")
+        .setFontWeight("bold")
+        .setHorizontalAlignment("center");
+      targetSheet.setFrozenRows(1);
+
+      // ใส่ข้อมูลเริ่มต้นสำหรับสาขาเขาช่องพราน
+      const sampleRows = [
+        ["กันยายน 2569", "เขาช่องพราน", "ยอดจัดสินเชื่อรวม (Volume)", "5,000,000", "3,250,000", "65.0%", "กำลังดำเนินการ", "อันดับ 3", "เป้าหมายเขตราชบุรี 2569"],
+        ["กันยายน 2569", "เขาช่องพราน", "ประกัน / ผลิตภัณฑ์เสริม (Non-motor)", "150,000", "160,000", "106.7%", "บรรลุเป้าหมาย", "อันดับ 1", "ยอดเยี่ยมเกินเป้าหมาย"],
+        ["กันยายน 2569", "เขาช่องพราน", "จำนวนลูกค้าใหม่ (ราย)", "30", "22", "73.3%", "กำลังดำเนินการ", "อันดับ 4", "ลุยต่ออีก 8 ราย"],
+        ["กันยายน 2569", "เขาช่องพราน", "ตรวจสภาพรถครบ 100%", "100%", "100%", "100.0%", "สำเร็จ", "อันดับ 1", "ผ่านเกณฑ์คุณภาพ 100%"],
+        ["กันยายน 2569", "เขาช่องพราน", "ติดตามหนี้ / NPL 0%", "0.0%", "0.0%", "100.0%", "สำเร็จ", "อันดับ 1", "คุมคุณภาพหนี้ได้ดีเยี่ยม"]
+      ];
+      targetSheet.getRange(2, 1, sampleRows.length, headers.length).setValues(sampleRows);
+    }
+
+    const data = targetSheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+
+    const rows = data.slice(1);
+    return rows
+      .filter(row => row.some(cell => String(cell).trim() !== ""))
+      .map((row, idx) => ({
+        id: idx + 1,
+        period: String(row[0] || "").trim(),
+        branch: String(row[1] || "").trim(),
+        item: String(row[2] || "").trim(),
+        target: row[3] !== undefined && row[3] !== null ? String(row[3]) : "-",
+        actual: row[4] !== undefined && row[4] !== null ? String(row[4]) : "-",
+        percent: String(row[5] || "-").trim(),
+        status: String(row[6] || "กำลังดำเนินการ").trim(),
+        rank: String(row[7] || "-").trim(),
+        note: String(row[8] || "").trim()
+      }));
+  } catch (err) {
+    Logger.log("getRegionalTargetChecklistData Error: " + err.toString());
+    return [];
   }
 }
 
@@ -656,11 +797,12 @@ function doPost(e) {
         payload.model || "",
         payload.year || "",
         payload.licensePlate || "",
-        Number(payload.amount) || 0,
+        parseNumericAmount(payload.amount),
         payload.status || "นัดหมายเข้าสาขา",
         payload.appointmentDate || "-",
         payload.officer || "พนักงานสาขาเขาช่องพราน",
-        payload.note || ""
+        payload.note || "",
+        timestamp
       ];
       
       sheet.appendRow(newRow);
@@ -680,7 +822,7 @@ function doPost(e) {
         model: payload.model,
         year: payload.year,
         licensePlate: payload.licensePlate,
-        amount: Number(payload.amount) || 0,
+        amount: parseNumericAmount(payload.amount),
         status: payload.status,
         appointmentDate: payload.appointmentDate,
         officer: payload.officer,
@@ -708,7 +850,7 @@ function doPost(e) {
             vehicleType: data[i][4],
             brand: data[i][5],
             model: data[i][6],
-            amount: data[i][9]
+            amount: parseNumericAmount(data[i][9])
           };
           break;
         }
@@ -718,13 +860,16 @@ function doPost(e) {
         return jsonResponse({ success: false, message: "ไม่พบรหัสลูกค้านี้ในระบบ" });
       }
       
-      if (payload.amount !== undefined) sheet.getRange(targetRowIndex, 10).setValue(Number(payload.amount));
+      if (payload.amount !== undefined) sheet.getRange(targetRowIndex, 10).setValue(parseNumericAmount(payload.amount));
       if (payload.status) sheet.getRange(targetRowIndex, 11).setValue(payload.status);
       if (payload.appointmentDate) sheet.getRange(targetRowIndex, 12).setValue(payload.appointmentDate);
       if (payload.officer) sheet.getRange(targetRowIndex, 13).setValue(payload.officer);
       if (payload.note !== undefined) sheet.getRange(targetRowIndex, 14).setValue(payload.note);
       
-      if (payload.status === "อนุมัติ/รับเงินแล้ว") {
+      const updateTimestamp = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
+      sheet.getRange(targetRowIndex, 15).setValue(updateTimestamp);
+      
+      if (isApprovedStatus(payload.status)) {
         const now = new Date();
         const allCustomers = fetchAllCustomersList(sheet);
         const monthStats = getMonthlyStats(allCustomers, now);
@@ -734,7 +879,7 @@ function doPost(e) {
           name: payload.name || existingCustomer.name || "ลูกค้า",
           phone: existingCustomer.phone || "-",
           vehicleDetail: `${existingCustomer.vehicleType || ''} ${existingCustomer.brand || ''} ${existingCustomer.model || ''}`.trim(),
-          amount: Number(payload.amount || existingCustomer.amount || 0),
+          amount: parseNumericAmount(payload.amount !== undefined ? payload.amount : existingCustomer.amount),
           officer: payload.officer || "พนักงานสาขาเขาช่องพราน",
           monthStats: monthStats
         });
@@ -1298,8 +1443,12 @@ function fetchAllCustomersList(sheet) {
   return data.slice(1).map(row => ({
     id: row[0],
     createdAt: row[1],
-    amount: Number(row[9]) || 0,
+    updatedAt: row[14] || row[1],
+    name: row[2] || "",
+    phone: row[3] || "",
+    amount: parseNumericAmount(row[9]),
     status: String(row[10] || "นัดหมายเข้าสาขา").trim(),
+    appointmentDate: row[11] || "-",
     vehicleType: String(row[4] || "มอเตอร์ไซค์").trim()
   }));
 }
@@ -1316,19 +1465,19 @@ function getDailyStats(customers, now) {
   let statusMap = {};
 
   customers.forEach(c => {
-    if (!c.createdAt) return;
-    try {
-      const d = new Date(c.createdAt);
-      if (d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === currentDate) {
-        totalCases++;
-        totalAmount += c.amount;
-        if (c.status === "อนุมัติ/รับเงินแล้ว") {
-          approvedAmount += c.amount;
-          approvedCount++;
-        }
-        statusMap[c.status] = (statusMap[c.status] || 0) + 1;
+    const isApp = isApprovedStatus(c.status);
+    const d = isApp ? parseFlexDate(c.updatedAt || c.createdAt) : parseFlexDate(c.createdAt);
+    if (!d) return;
+
+    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === currentDate) {
+      totalCases++;
+      totalAmount += c.amount;
+      if (isApp) {
+        approvedAmount += c.amount;
+        approvedCount++;
       }
-    } catch(e) {}
+      statusMap[c.status] = (statusMap[c.status] || 0) + 1;
+    }
   });
 
   return { totalCases, totalAmount, approvedAmount, approvedCount, statusMap };
@@ -1345,19 +1494,19 @@ function getMonthlyStats(customers, now) {
   let statusMap = {};
 
   customers.forEach(c => {
-    if (!c.createdAt) return;
-    try {
-      const d = new Date(c.createdAt);
-      if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
-        totalCases++;
-        totalAmount += c.amount;
-        if (c.status === "อนุมัติ/รับเงินแล้ว") {
-          approvedAmount += c.amount;
-          approvedCount++;
-        }
-        statusMap[c.status] = (statusMap[c.status] || 0) + 1;
+    const isApp = isApprovedStatus(c.status);
+    const d = isApp ? parseFlexDate(c.updatedAt || c.createdAt) : parseFlexDate(c.createdAt);
+    if (!d) return;
+
+    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+      totalCases++;
+      totalAmount += c.amount;
+      if (isApp) {
+        approvedAmount += c.amount;
+        approvedCount++;
       }
-    } catch(e) {}
+      statusMap[c.status] = (statusMap[c.status] || 0) + 1;
+    }
   });
 
   return { totalCases, totalAmount, approvedAmount, approvedCount, statusMap };
@@ -1371,9 +1520,10 @@ function calculateStats(customers) {
   let vehicleCount = {};
   
   customers.forEach(c => {
-    totalAmount += c.amount;
-    if (c.status === "อนุมัติ/รับเงินแล้ว") {
-      approvedAmount += c.amount;
+    const amt = parseNumericAmount(c.amount);
+    totalAmount += amt;
+    if (isApprovedStatus(c.status)) {
+      approvedAmount += amt;
     }
     statusCount[c.status] = (statusCount[c.status] || 0) + 1;
     vehicleCount[c.vehicleType] = (vehicleCount[c.vehicleType] || 0) + 1;
@@ -1395,4 +1545,86 @@ function getEmptyStats() {
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ==============================================================================
+// 🤖 โมดูลแยก: ระบบดึงข้อมูลยอดหนี้และเป้าหมายอัตโนมัติประจำวัน (Daily Auto-Sync Engine)
+// ==============================================================================
+
+const SYNC_CONFIG_KEY = "AUTO_SYNC_DEBT_CONFIG";
+
+/**
+ * 1. ฟังก์ชันตั้งเวลานาฬิกาปลุกดึงข้อมูลอัตโนมัติทุกวัน (Time-driven Trigger)
+ * สั่งให้ระบบตื่นขึ้นมาทำงานทุกเช้าเวลา 06:00 น. - 07:00 น.
+ */
+function setupDailyAutoSyncTrigger() {
+  // ลบ Trigger เดิมที่อาจซ้ำซ้อนออกก่อน
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "runDailyDebtSyncJob") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+
+  // สร้าง Trigger ใหม่ให้รันทุกวันตอนเช้า 6 โมง
+  ScriptApp.newTrigger("runDailyDebtSyncJob")
+    .timeBased()
+    .everyDays(1)
+    .atHour(6)
+    .create();
+
+  PropertiesService.getScriptProperties().setProperty(SYNC_CONFIG_KEY, JSON.stringify({
+    enabled: true,
+    lastSetup: new Date().toISOString(),
+    status: "Active (รันทุกวันเวลา 06:00 - 07:00 น.)"
+  }));
+
+  Logger.log("✅ ตั้งเวลาระบบดึงข้อมูลอัตโนมัติทุกวันสำเร็จ!");
+  return { success: true, message: "ตั้งค่าระบบดึงข้อมูลอัตโนมัติทุกวันเวลา 06:00 น. เรียบร้อยแล้ว" };
+}
+
+/**
+ * 2. ฟังก์ชันหลักที่จะถูกเรียกทำงานอัตโนมัติทุกวันตอนเช้า
+ */
+function runDailyDebtSyncJob() {
+  try {
+    Logger.log("⏳ เริ่มต้นการดึงข้อมูลยอดหนี้ประจำวัน (สาขาเขาช่องพราน)...");
+    
+    // ดึงข้อมูลเป้าหมายและยอดหนี้ล่าสุดจากตาราง
+    const regionalData = getRegionalTargetChecklistData();
+    const now = new Date();
+    const syncTimestamp = Utilities.formatDate(now, "Asia/Bangkok", "dd/MM/yyyy HH:mm:ss");
+
+    // บันทึก Log สถานะการซิงค์
+    PropertiesService.getScriptProperties().setProperty("LAST_DEBT_SYNC_LOG", JSON.stringify({
+      timestamp: syncTimestamp,
+      status: "Success",
+      dataCount: regionalData.length,
+      branch: "เขาช่องพราน"
+    }));
+
+    Logger.log("✅ ดึงข้อมูลยอดหนี้และเป้าหมายประจำวันสำเร็จ ณ เวลา: " + syncTimestamp);
+    return { success: true, timestamp: syncTimestamp };
+  } catch (error) {
+    Logger.log("❌ เกิดข้อผิดพลาดในการซิงค์: " + error.toString());
+    PropertiesService.getScriptProperties().setProperty("LAST_DEBT_SYNC_LOG", JSON.stringify({
+      timestamp: new Date().toISOString(),
+      status: "Error",
+      error: error.toString()
+    }));
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * 3. ฟังก์ชันตรวจสอบสถานะของระบบซิงค์อัตโนมัติ
+ */
+function getAutoSyncStatus() {
+  const configStr = PropertiesService.getScriptProperties().getProperty(SYNC_CONFIG_KEY);
+  const lastLogStr = PropertiesService.getScriptProperties().getProperty("LAST_DEBT_SYNC_LOG");
+
+  return {
+    config: configStr ? JSON.parse(configStr) : { enabled: false, status: "ยังไม่ได้เปิดใช้งาน" },
+    lastSync: lastLogStr ? JSON.parse(lastLogStr) : { status: "ยังไม่มีประวัติการซิงค์", timestamp: "-" }
+  };
 }

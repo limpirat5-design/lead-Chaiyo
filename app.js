@@ -7,11 +7,18 @@
  */
 
 const STORAGE_KEY_API_URL = "CHAIYO_KCP_API_URL";
-const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbwVIvz3pbrwhnUS120l17v7Au6oU09dHZUlMcFViJVZqP896nNsKDViYzT3i3XJhu_d/exec";
+const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycby2mv4TcwLAoz1AoY0vkGWbNxRZoBTnz0J2wGInpDqQEunzAAUdgi4OPpNtJ96PTsDL/exec";
 let currentApiUrl = DEFAULT_API_URL;
 localStorage.setItem(STORAGE_KEY_API_URL, DEFAULT_API_URL);
 let currentDashboardPeriod = "month"; // 'today', 'month', 'year', 'all'
 let currentReportPeriod = "month";
+let regionalChecklistData = [
+  { id: 1, period: "กันยายน 2569", branch: "เขาช่องพราน", item: "ยอดจัดสินเชื่อรวม (Volume)", target: "5,000,000", actual: "3,250,000", percent: "65.0%", status: "กำลังดำเนินการ", rank: "อันดับ 3", note: "เป้าหมายเขตราชบุรี 2569" },
+  { id: 2, period: "กันยายน 2569", branch: "เขาช่องพราน", item: "ประกัน / ผลิตภัณฑ์เสริม (Non-motor)", target: "150,000", actual: "160,000", percent: "106.7%", status: "บรรลุเป้าหมาย", rank: "อันดับ 1", note: "ยอดเยี่ยมเกินเป้าหมาย" },
+  { id: 3, period: "กันยายน 2569", branch: "เขาช่องพราน", item: "จำนวนลูกค้าใหม่ (ราย)", target: "30", actual: "22", percent: "73.3%", status: "กำลังดำเนินการ", rank: "อันดับ 4", note: "ลุยต่ออีก 8 ราย" },
+  { id: 4, period: "กันยายน 2569", branch: "เขาช่องพราน", item: "ตรวจสภาพรถครบ 100%", target: "100%", actual: "100%", percent: "100.0%", status: "สำเร็จ", rank: "อันดับ 1", note: "ผ่านเกณฑ์คุณภาพ 100%" },
+  { id: 5, period: "กันยายน 2569", branch: "เขาช่องพราน", item: "ติดตามหนี้ / NPL 0%", target: "0.0%", actual: "0.0%", percent: "100.0%", status: "สำเร็จ", rank: "อันดับ 1", note: "คุมคุณภาพหนี้ได้ดีเยี่ยม" }
+];
 
 /**
  * ฟังก์ชันแปลงวันที่และเวลาเป็นภาษาไทย พ.ศ. แบบ 24 ชั่วโมง (24 hr format)
@@ -26,12 +33,120 @@ const THAI_MONTHS_FULL = [
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
+/**
+ * ฟังก์ชันช่วยแปลงตัวเลขยอดเงินให้ปลอดภัย (ตัด comma, ช่องว่าง, ตัวอักษร)
+ */
+function parseNumericAmount(val) {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(/,/g, "").replace(/[^0-9.-]/g, "").trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
+/**
+ * ตรวจสอบสถานะว่าเข้าข่าย "อนุมัติ" หรือไม่ (รองรับหลายรูปแบบ)
+ */
+function isApprovedStatus(status) {
+  if (!status) return false;
+  const s = String(status).trim().toLowerCase();
+  return s.includes("อนุมัติ") || s.includes("approve") || s.includes("รับเงินแล้ว");
+}
+
+/**
+ * จัดกลุ่มและทำให้ชื่อสถานะเป็นมาตรฐานเดียวกัน
+ */
+function normalizeStatus(status) {
+  if (!status) return "นัดหมายเข้าสาขา";
+  const s = String(status).trim();
+  if (isApprovedStatus(s)) return "อนุมัติ/รับเงินแล้ว";
+  if (s.includes("นัดหมาย")) return "นัดหมายเข้าสาขา";
+  if (s.includes("90 วัน") || s.includes("ติดต่ออีกครั้ง") || s.includes("พึ่งโอน") || s.includes("โทรซ้ำ")) return "ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)";
+  if (s.includes("ไม่สนใจ") || s.includes("ปฏิเสธ") || s.includes("ยกเลิก")) return "ลูกค้าไม่สนใจ";
+  if (s.includes("ไม่เข้า") || s.includes("ไม่ผ่าน") || s.includes("ติดเครดิต")) return "ไม่เข้าเงื่อนไข";
+  return s;
+}
+
+/**
+ * แปลงวันที่จากสตริงหลากหลายรูปแบบให้ได้ Date Object ที่ถูกต้อง
+ * รองรับทั้ง ค.ศ., พ.ศ., ISO, YYYY-MM-DD, DD/MM/YYYY
+ */
+function parseFlexDate(dateInput) {
+  if (!dateInput || dateInput === "-" || dateInput === "เมื่อสักครู่") return null;
+  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) return dateInput;
+
+  let str = String(dateInput).trim().replace(/น\.$/, "").trim();
+
+  // 1. ลองแปลงตรงๆ ก่อน
+  let d = new Date(str.replace(" ", "T"));
+  if (!isNaN(d.getTime())) {
+    if (d.getFullYear() > 2400) {
+      d.setFullYear(d.getFullYear() - 543);
+    }
+    return d;
+  }
+
+  // 2. รูปแบบ DD/MM/YYYY หรือ DD-MM-YYYY
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (dmyMatch) {
+    let day = parseInt(dmyMatch[1], 10);
+    let month = parseInt(dmyMatch[2], 10) - 1;
+    let year = parseInt(dmyMatch[3], 10);
+    let hour = dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 0;
+    let minute = dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0;
+    let second = dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0;
+
+    if (year > 2400) year -= 543;
+    const resDate = new Date(year, month, day, hour, minute, second);
+    if (!isNaN(resDate.getTime())) return resDate;
+  }
+
+  // 3. รูปแบบ YYYY-MM-DD หรือ YYYY/MM/DD
+  const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (ymdMatch) {
+    let year = parseInt(ymdMatch[1], 10);
+    let month = parseInt(ymdMatch[2], 10) - 1;
+    let day = parseInt(ymdMatch[3], 10);
+    let hour = ymdMatch[4] ? parseInt(ymdMatch[4], 10) : 0;
+    let minute = ymdMatch[5] ? parseInt(ymdMatch[5], 10) : 0;
+    let second = ymdMatch[6] ? parseInt(ymdMatch[6], 10) : 0;
+
+    if (year > 2400) year -= 543;
+    const resDate = new Date(year, month, day, hour, minute, second);
+    if (!isNaN(resDate.getTime())) return resDate;
+  }
+
+  return null;
+}
+
+/**
+ * ดึงวันที่ที่มีผลต่อการคำนวณสถิติ
+ * ถ้าเป็นเคสอนุมัติ และมีวันที่อัปเดต/อนุมัติ ให้ใช้วันที่อัปเดตเป็นหลัก
+ */
+function getItemEffectiveDate(item) {
+  if (isApprovedStatus(item.status)) {
+    if (item.approvedAt) {
+      const d = parseFlexDate(item.approvedAt);
+      if (d) return d;
+    }
+    if (item.updatedAt) {
+      const d = parseFlexDate(item.updatedAt);
+      if (d) return d;
+    }
+  }
+  if (item.createdAt && item.createdAt !== "เมื่อสักครู่") {
+    const d = parseFlexDate(item.createdAt);
+    if (d) return d;
+  }
+  return new Date();
+}
+
 function formatThaiDateTime24hr(dateInput) {
   if (!dateInput || dateInput === "-" || dateInput === "เมื่อสักครู่") return dateInput || "-";
 
   try {
-    const d = new Date(dateInput.replace(" ", "T"));
-    if (isNaN(d.getTime())) return dateInput;
+    const d = parseFlexDate(dateInput);
+    if (!d || isNaN(d.getTime())) return dateInput;
 
     const day = d.getDate();
     const month = THAI_MONTHS_SHORT[d.getMonth()];
@@ -49,8 +164,8 @@ function formatThaiDateShort24hr(dateInput) {
   if (!dateInput || dateInput === "-" || dateInput === "เมื่อสักครู่") return dateInput || "-";
 
   try {
-    const d = new Date(dateInput.replace(" ", "T"));
-    if (isNaN(d.getTime())) return dateInput;
+    const d = parseFlexDate(dateInput);
+    if (!d || isNaN(d.getTime())) return dateInput;
 
     const day = d.getDate();
     const month = THAI_MONTHS_SHORT[d.getMonth()];
@@ -210,8 +325,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const custDateInput = document.getElementById("custAppointmentDate");
   if (custDateInput) custDateInput.value = tomorrow.toISOString().slice(0, 16);
 
+  // Auto Phone Number Formatter (0XX-XXX-XXXX)
+  const phoneInput = document.getElementById("custPhone");
+  if (phoneInput) {
+    phoneInput.addEventListener("input", (e) => {
+      let val = e.target.value.replace(/\D/g, "");
+      if (val.length > 10) val = val.substring(0, 10);
+      if (val.length > 6) {
+        e.target.value = `${val.substring(0, 3)}-${val.substring(3, 6)}-${val.substring(6)}`;
+      } else if (val.length > 3) {
+        e.target.value = `${val.substring(0, 3)}-${val.substring(3)}`;
+      } else {
+        e.target.value = val;
+      }
+    });
+  }
+
   loadCustomerData();
   calculateInstallment();
+  renderRegionalChecklist();
   initLucideIcons();
 });
 
@@ -296,8 +428,9 @@ function selectCaseStatus(status) {
  * ฟังก์ชันเลือกสถานะเคสผ่านการ์ด Neumorphic (ในหน้าต่าง Modal อัปเดต)
  */
 function selectModalStatus(status) {
+  const normStatus = normalizeStatus(status);
   const hiddenInput = document.getElementById("modalCustStatus");
-  if (hiddenInput) hiddenInput.value = status;
+  if (hiddenInput) hiddenInput.value = normStatus;
 
   const allStatuses = [
     "นัดหมายเข้าสาขา",
@@ -310,7 +443,7 @@ function selectModalStatus(status) {
   allStatuses.forEach(s => {
     const card = document.getElementById(`mstatus-card-${s}`);
     if (card) {
-      if (s === status) {
+      if (s === normStatus) {
         card.classList.add("active");
       } else {
         card.classList.remove("active");
@@ -318,7 +451,7 @@ function selectModalStatus(status) {
     }
   });
 
-  toggleModalDateInput(status);
+  toggleModalDateInput(normStatus);
   initLucideIcons();
 }
 
@@ -403,9 +536,25 @@ function switchTab(tabId) {
 
   if (tabId === "dashboard") {
     renderDashboard();
+    renderRegionalChecklist();
   }
 
   initLucideIcons();
+}
+
+/**
+ * ตรวจสอบว่าวันที่นัดหมายถึงกำหนดวันนี้หรือค้างติดตามหรือไม่
+ * (ถ้าใส่วันที่ในอนาคต เช่น อีก 1 เดือน หรือปีหน้า จะถือว่ายังไม่ถึงกำหนด และไม่ขึ้นเตือนวันนี้)
+ */
+function isTaskDueTodayOrOverdue(appointmentDate) {
+  if (!appointmentDate || appointmentDate === "-") return false;
+  const targetDate = parseFlexDate(appointmentDate);
+  if (!targetDate || isNaN(targetDate.getTime())) return false;
+
+  const now = new Date();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  
+  return targetDate <= todayEnd;
 }
 
 /**
@@ -416,10 +565,10 @@ function updateTodayTasksBanner() {
   let callbackCount = 0;
 
   customerDataList.forEach(c => {
-    if (c.appointmentDate && c.appointmentDate !== "-") {
+    if (isTaskDueTodayOrOverdue(c.appointmentDate)) {
       if (c.status === "นัดหมายเข้าสาขา") {
         appointCount++;
-      } else if (c.status.includes("ติดต่ออีกครั้ง")) {
+      } else if (c.status.includes("ติดต่ออีกครั้ง") || c.status.includes("90 วัน")) {
         callbackCount++;
       }
     }
@@ -429,10 +578,20 @@ function updateTodayTasksBanner() {
   const badge = document.getElementById("todayBadgeCount");
   const appEl = document.getElementById("todayAppointCount");
   const callEl = document.getElementById("todayCallbackCount");
+  const tabBadge = document.getElementById("tabListBadge");
 
   if (badge) badge.textContent = `${totalToday} งาน`;
   if (appEl) appEl.textContent = appointCount;
   if (callEl) callEl.textContent = callbackCount;
+
+  if (tabBadge) {
+    if (totalToday > 0) {
+      tabBadge.textContent = totalToday;
+      tabBadge.classList.remove("hidden");
+    } else {
+      tabBadge.classList.add("hidden");
+    }
+  }
 }
 
 function filterTodayTasks() {
@@ -443,12 +602,12 @@ function filterTodayTasks() {
   if (tFilter) tFilter.value = "";
   
   const todayTasks = customerDataList.filter(c => 
-    c.appointmentDate && c.appointmentDate !== "-" && 
-    (c.status === "นัดหมายเข้าสาขา" || c.status.includes("ติดต่ออีกครั้ง"))
+    isTaskDueTodayOrOverdue(c.appointmentDate) && 
+    (c.status === "นัดหมายเข้าสาขา" || c.status.includes("ติดต่ออีกครั้ง") || c.status.includes("90 วัน"))
   );
 
   renderCustomerTable(todayTasks);
-  showToast(`🔍 แสดงรายการที่ต้องติดต่อ (${todayTasks.length} รายการ)`);
+  showToast(`🔍 แสดงรายการที่ถึงกำหนดติดต่อวันนี้/ค้างติดตาม (${todayTasks.length} รายการ)`);
 }
 
 /**
@@ -511,9 +670,14 @@ async function loadCustomerData() {
 
     if (result.success && Array.isArray(result.data)) {
       customerDataList = result.data;
+      if (Array.isArray(result.regionalChecklist) && result.regionalChecklist.length > 0) {
+        regionalChecklistData = result.regionalChecklist;
+      }
       updateSyncStatus("online", "เชื่อมต่อ Google Sheets สำเร็จ");
       renderCustomerTable(customerDataList);
       updateTodayTasksBanner();
+      populateDashboardMonthSelect(customerDataList);
+      renderRegionalChecklist(regionalChecklistData);
       if (document.getElementById("tab-dashboard") && !document.getElementById("tab-dashboard").classList.contains("hidden")) {
         renderDashboard();
       }
@@ -593,7 +757,7 @@ async function handleFormSubmit(event) {
     model: document.getElementById("custModel").value.trim(),
     year: document.getElementById("custYear").value,
     licensePlate: document.getElementById("custLicensePlate").value.trim(),
-    amount: Number(document.getElementById("custAmount").value) || 0,
+    amount: parseNumericAmount(document.getElementById("custAmount").value),
     status: selectedStatus,
     appointmentDate: (selectedStatus === "นัดหมายเข้าสาขา" || selectedStatus.includes("ติดต่ออีกครั้ง")) ? appointmentDate.replace("T", " ") : "-",
     officer: document.getElementById("custOfficer").value.trim() || "พนักงานสาขาเขาช่องพราน",
@@ -690,7 +854,7 @@ function renderCustomerTable(data) {
                 ${escapeHtml(item.status)}
               </span>
               <div class="font-black text-orange-600 text-sm mt-1">
-                ${Number(item.amount).toLocaleString()} บาท
+                ${parseNumericAmount(item.amount).toLocaleString()} บาท
               </div>
             </div>
           </div>
@@ -757,7 +921,7 @@ function renderCustomerTable(data) {
             ${item.licensePlate ? `<div class="text-[11px] text-slate-600 font-mono font-bold">${escapeHtml(item.licensePlate)}</div>` : ''}
           </td>
           <td class="py-3 px-3 text-right font-black text-orange-600 whitespace-nowrap text-sm">
-            ${Number(item.amount).toLocaleString()} บาท
+            ${parseNumericAmount(item.amount).toLocaleString()} บาท
           </td>
           <td class="py-3 px-3 text-center">
             <div>
@@ -809,7 +973,7 @@ function filterCustomerTable() {
   const filtered = customerDataList.filter(item => {
     const fullSearchStr = `${item.name || ''} ${item.phone || ''} ${item.brand || ''} ${item.model || ''} ${item.licensePlate || ''} ${item.officer || ''}`.toLowerCase();
     const matchQuery = !query || fullSearchStr.includes(query);
-    const matchStatus = !status || item.status === status;
+    const matchStatus = !status || normalizeStatus(item.status) === normalizeStatus(status) || item.status === status;
     const matchType = !type || item.vehicleType === type;
 
     return matchQuery && matchStatus && matchType;
@@ -818,8 +982,54 @@ function filterCustomerTable() {
   renderCustomerTable(filtered);
 }
 
+let selectedCustomMonthKey = null; // 'YYYY-MM'
+
 /**
- * ฟังก์ชันกรองข้อมูลตามช่วงเวลา
+ * เติมตัวเลือกเดือนใน Dropdown แดชบอร์ดตามข้อมูลจริงในระบบ
+ */
+function populateDashboardMonthSelect(dataset = customerDataList) {
+  const select = document.getElementById("dashboardMonthSelect");
+  if (!select) return;
+
+  const monthCountMap = {};
+  dataset.forEach(item => {
+    const d = getItemEffectiveDate(item);
+    if (d && !isNaN(d.getTime())) {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthCountMap[key] = (monthCountMap[key] || 0) + 1;
+    }
+  });
+
+  const sortedKeys = Object.keys(monthCountMap).sort().reverse();
+  const now = new Date();
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  let html = `<option value="current">เดือนปัจจุบัน (${THAI_MONTHS_FULL[now.getMonth()]} ${now.getFullYear() + 543})</option>`;
+  
+  sortedKeys.forEach(k => {
+    const [y, m] = k.split("-").map(Number);
+    const monthName = THAI_MONTHS_FULL[m - 1];
+    const yearBE = y + 543;
+    const isCurrent = k === currentKey;
+    const label = `${monthName} ${yearBE} (${monthCountMap[k]} เคส)${isCurrent ? ' ⭐' : ''}`;
+    html += `<option value="${k}" ${selectedCustomMonthKey === k ? 'selected' : ''}>${label}</option>`;
+  });
+
+  select.innerHTML = html;
+}
+
+function handleDashboardMonthChange(val) {
+  if (val === "current") {
+    selectedCustomMonthKey = null;
+    setDashboardPeriod("month");
+  } else {
+    selectedCustomMonthKey = val;
+    setDashboardPeriod("custom_month");
+  }
+}
+
+/**
+ * ฟังก์ชันกรองข้อมูลตามช่วงเวลา (ใช้วันที่อนุมัติ/อัปเดตสำหรับเคสอนุมัติ และวันที่สร้างสำหรับเคสทั่วไป)
  */
 function filterDataByPeriod(period, dataset = customerDataList) {
   if (period === "all") return dataset;
@@ -830,23 +1040,20 @@ function filterDataByPeriod(period, dataset = customerDataList) {
   const currentDate = now.getDate();
 
   return dataset.filter(item => {
-    if (!item.createdAt || item.createdAt === "เมื่อสักครู่") return true;
+    const d = getItemEffectiveDate(item);
+    if (!d || isNaN(d.getTime())) return true;
 
-    try {
-      const d = new Date(item.createdAt.replace(" ", "T"));
-      if (isNaN(d.getTime())) return true;
-
-      if (period === "today") {
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === currentDate;
-      } else if (period === "month") {
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      } else if (period === "year") {
-        return d.getFullYear() === currentYear;
-      }
-      return true;
-    } catch (e) {
-      return true;
+    if (period === "today") {
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === currentDate;
+    } else if (period === "month") {
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    } else if (period === "custom_month" && selectedCustomMonthKey) {
+      const [tYear, tMonth] = selectedCustomMonthKey.split("-").map(Number);
+      return d.getFullYear() === tYear && (d.getMonth() + 1) === tMonth;
+    } else if (period === "year") {
+      return d.getFullYear() === currentYear;
     }
+    return true;
   });
 }
 
@@ -860,7 +1067,7 @@ function setDashboardPeriod(period) {
   periods.forEach(p => {
     const btn = document.getElementById(`periodBtn-${p}`);
     if (btn) {
-      if (p === period) {
+      if (p === period || (period === "custom_month" && p === "month")) {
         btn.classList.add("active", "text-orange-600");
         btn.classList.remove("text-slate-700");
       } else {
@@ -877,6 +1084,9 @@ function setDashboardPeriod(period) {
       titleEl.textContent = `ประจำวันนี้ (${now.getDate()} ${THAI_MONTHS_SHORT[now.getMonth()]} ${now.getFullYear() + 543})`;
     } else if (period === "month") {
       titleEl.textContent = `ประจำเดือน ${THAI_MONTHS_FULL[now.getMonth()]} ${now.getFullYear() + 543}`;
+    } else if (period === "custom_month" && selectedCustomMonthKey) {
+      const [tYear, tMonth] = selectedCustomMonthKey.split("-").map(Number);
+      titleEl.textContent = `ประจำเดือน ${THAI_MONTHS_FULL[tMonth - 1]} ${tYear + 543}`;
     } else if (period === "year") {
       titleEl.textContent = `ประจำปี พ.ศ. ${now.getFullYear() + 543}`;
     } else {
@@ -914,16 +1124,20 @@ function renderDashboard() {
   };
 
   filteredData.forEach(item => {
-    const amt = Number(item.amount) || 0;
+    const amt = parseNumericAmount(item.amount);
     totalAmount += amt;
 
-    if (item.status === "อนุมัติ/รับเงินแล้ว") {
+    const normStatus = normalizeStatus(item.status);
+
+    if (isApprovedStatus(item.status)) {
       approvedAmount += amt;
       approvedCount++;
+      statusMap["อนุมัติ/รับเงินแล้ว"] = (statusMap["อนุมัติ/รับเงินแล้ว"] || 0) + 1;
+    } else {
+      statusMap[normStatus] = (statusMap[normStatus] || 0) + 1;
     }
 
     vehicleMap[item.vehicleType] = (vehicleMap[item.vehicleType] || 0) + 1;
-    statusMap[item.status] = (statusMap[item.status] || 0) + 1;
   });
 
   const winRate = totalCases > 0 ? Math.round((approvedCount / totalCases) * 100) : 0;
@@ -999,19 +1213,19 @@ function renderDashboard() {
         labels: vehicleLabels.length ? vehicleLabels : ["ไม่มีข้อมูล"],
         datasets: [{
           data: vehicleValues.length ? vehicleValues : [1],
-          backgroundColor: vehicleValues.length ? ["#ff6b00", "#0284c7", "#0b0f19", "#38bdf8", "#fb923c", "#10b981"] : ["#cbd5e1"],
+          backgroundColor: vehicleValues.length ? ["#ff6400", "#0284c7", "#6366f1", "#10b981", "#d97706", "#e11d48"] : ["#cbd5e1"],
           borderWidth: 3,
-          borderColor: "#e6edf5",
+          borderColor: "#ffffff",
           hoverOffset: 6
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: "62%",
+        cutout: "64%",
         animation: { duration: 600, easing: 'easeOutQuart' },
         plugins: {
-          legend: { position: "bottom", labels: { font: { family: "Prompt", weight: "bold", size: 11 } } }
+          legend: { position: "bottom", labels: { font: { family: "Prompt", weight: "bold", size: 11 }, padding: 12 } }
         }
       }
     });
@@ -1036,7 +1250,7 @@ function renderDashboard() {
             statusMap["ลูกค้าไม่สนใจ"] || 0,
             statusMap["ไม่เข้าเงื่อนไข"] || 0
           ],
-          backgroundColor: ["#0284c7", "#ff6b00", "#16a34a", "#dc2626", "#64748b"],
+          backgroundColor: ["#0284c7", "#ff6400", "#10b981", "#e11d48", "#64748b"],
           borderRadius: 10,
           borderSkipped: false
         }]
@@ -1116,16 +1330,19 @@ function generateExecutiveReport(period) {
   let statusMap = {};
 
   filteredData.forEach(item => {
-    const amt = Number(item.amount) || 0;
+    const amt = parseNumericAmount(item.amount);
     totalAmount += amt;
 
-    if (item.status === "อนุมัติ/รับเงินแล้ว") {
+    const normStatus = normalizeStatus(item.status);
+    if (isApprovedStatus(item.status)) {
       approvedAmount += amt;
       approvedCount++;
+      statusMap["อนุมัติ/รับเงินแล้ว"] = (statusMap["อนุมัติ/รับเงินแล้ว"] || 0) + 1;
+    } else {
+      statusMap[normStatus] = (statusMap[normStatus] || 0) + 1;
     }
 
     vehicleMap[item.vehicleType] = (vehicleMap[item.vehicleType] || 0) + 1;
-    statusMap[item.status] = (statusMap[item.status] || 0) + 1;
   });
 
   const winRate = totalCases > 0 ? Math.round((approvedCount / totalCases) * 100) : 0;
@@ -1219,13 +1436,16 @@ async function handleUpdateSubmit(event) {
 
   const id = document.getElementById("modalCustId").value;
   const status = document.getElementById("modalCustStatus").value;
-  const amount = Number(document.getElementById("modalCustAmount").value) || 0;
+  const amount = parseNumericAmount(document.getElementById("modalCustAmount").value);
   const officer = document.getElementById("modalCustOfficer").value.trim();
   const note = document.getElementById("modalCustNote").value.trim();
   let appointDate = document.getElementById("modalCustAppointmentDate").value || "-";
   if (appointDate !== "-") appointDate = appointDate.replace("T", " ");
 
-  if (status === "อนุมัติ/รับเงินแล้ว") {
+  const now = new Date();
+  const updatedStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  if (isApprovedStatus(status)) {
     triggerCelebrationConfetti();
   }
 
@@ -1243,7 +1463,9 @@ async function handleUpdateSubmit(event) {
           appointmentDate: (status === "นัดหมายเข้าสาขา" || status.includes("ติดต่ออีกครั้ง")) ? appointDate : "-",
           amount: amount,
           officer: officer,
-          note: note
+          note: note,
+          updatedAt: updatedStr,
+          approvedAt: isApprovedStatus(status) ? updatedStr : undefined
         })
       });
       const result = await response.json();
@@ -1252,6 +1474,7 @@ async function handleUpdateSubmit(event) {
       showToast("✅ อัปเดตสถานะสำเร็จ!");
       closeUpdateModal();
       await loadCustomerData();
+      renderDashboard();
     } catch (e) {
       alert("เกิดข้อผิดพลาด: " + e.message);
     }
@@ -1263,11 +1486,16 @@ async function handleUpdateSubmit(event) {
       customerDataList[idx].amount = amount;
       customerDataList[idx].officer = officer;
       customerDataList[idx].note = note;
+      customerDataList[idx].updatedAt = updatedStr;
+      if (isApprovedStatus(status)) {
+        customerDataList[idx].approvedAt = updatedStr;
+      }
     }
     showToast("✅ อัปเดตสถานะสำเร็จ (โหมดจำลอง)!");
     closeUpdateModal();
     renderCustomerTable(customerDataList);
     updateTodayTasksBanner();
+    renderDashboard();
   }
 
   if (submitBtn) submitBtn.disabled = false;
@@ -1307,11 +1535,22 @@ function calculateInstallment() {
 function applyCalculatedAmountToForm() {
   const principal = document.getElementById("calcPrincipal")?.value;
   const custAmountInput = document.getElementById("custAmount");
+  
   if (custAmountInput && principal) {
+    switchTab("form");
     custAmountInput.value = principal;
+    closeCalcModal();
+    
+    // Highlight glow effect
+    custAmountInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    custAmountInput.focus();
+    custAmountInput.classList.add("ring-4", "ring-orange-400", "bg-orange-50");
+    setTimeout(() => {
+      custAmountInput.classList.remove("ring-4", "ring-orange-400", "bg-orange-50");
+    }, 1500);
+
+    showToast(`✨ นำวงเงิน ${Number(principal).toLocaleString()} บาท ใส่ในฟอร์มเรียบร้อยแล้ว!`);
   }
-  closeCalcModal();
-  showToast("📋 นำวงเงินที่คำนวณไปใส่ในแบบฟอร์มแล้ว!");
 }
 
 /**
@@ -1372,7 +1611,8 @@ function animateCounter(elementId, targetValue, duration = 800) {
 }
 
 function getStatusBadgeClass(status) {
-  switch (status) {
+  const s = normalizeStatus(status);
+  switch (s) {
     case "นัดหมายเข้าสาขา": return "status-appointment";
     case "ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)": return "status-callback";
     case "อนุมัติ/รับเงินแล้ว": return "status-approved";
@@ -1422,12 +1662,45 @@ function saveApiUrlConfig() {
   loadCustomerData();
 }
 
+/**
+ * แจ้งเตือน Toast Notification สไตล์ iOS Dynamic Island
+ */
 function showToast(msg) {
+  const existing = document.getElementById("app-dynamic-toast");
+  if (existing) existing.remove();
+
   const toast = document.createElement("div");
-  toast.className = "fixed bottom-4 right-4 left-4 sm:left-auto sm:w-auto neu-card bg-gray-200 px-4 py-3 rounded-2xl border border-gray-300 text-xs sm:text-sm font-bold shadow-2xl text-slate-900 z-50 animate-fade-in flex items-center justify-center sm:justify-start gap-2";
+  toast.id = "app-dynamic-toast";
+  toast.className = "fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full bg-slate-950/95 text-white backdrop-blur-xl border border-white/20 shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-fade-in transition-all";
   toast.innerHTML = msg;
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
+
+  // Play subtle pleasant chime
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    }
+  } catch (e) {}
+
+  setTimeout(() => {
+    if (toast && toast.parentNode) {
+      toast.style.opacity = "0";
+      toast.style.transform = "translate(-50%, -10px) scale(0.95)";
+      setTimeout(() => toast.remove(), 250);
+    }
+  }, 3200);
 }
 
 function escapeHtml(str) {
@@ -1483,20 +1756,23 @@ function saveMonthlyTarget() {
 function updateMonthlyTargetGauge(dataset = customerDataList) {
   const targetGoal = getMonthlyTarget();
   
-  // คำนวณยอดอนุมัติประจำเดือนปัจจุบัน
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  let targetYear = now.getFullYear();
+  let targetMonth = now.getMonth();
+
+  if (currentDashboardPeriod === "custom_month" && selectedCustomMonthKey) {
+    const [y, m] = selectedCustomMonthKey.split("-").map(Number);
+    targetYear = y;
+    targetMonth = m - 1;
+  }
   
   let approvedThisMonth = 0;
   dataset.forEach(item => {
-    if (item.status === "อนุมัติ/รับเงินแล้ว" && item.createdAt) {
-      try {
-        const d = new Date(item.createdAt.replace(" ", "T"));
-        if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
-          approvedThisMonth += Number(item.amount) || 0;
-        }
-      } catch(e){}
+    if (isApprovedStatus(item.status)) {
+      const d = getItemEffectiveDate(item);
+      if (d && d.getFullYear() === targetYear && d.getMonth() === targetMonth) {
+        approvedThisMonth += parseNumericAmount(item.amount);
+      }
     }
   });
 
@@ -1541,4 +1817,806 @@ function updateMonthlyTargetGauge(dataset = customerDataList) {
       badgeMsg.innerHTML = "<span>⚡ ลุยเคสให้เต็มที่!</span>";
     }
   }
+}
+
+const REGIONAL_MONTHS = ["ม.ค. 69", "ก.พ. 69", "มี.ค. 69", "เม.ย. 69", "พ.ค. 69", "มิ.ย. 69", "ก.ค. 69", "ส.ค. 69", "ก.ย. 69", "ต.ค. 69", "พ.ย. 69", "ธ.ค. 69"];
+
+let currentRegionalSelectedMonth = "ส.ค. 69";
+let currentRegionalViewMode = "spotlight"; // 'spotlight', 'matrix', 'chart'
+let regionalTrendChartInstance = null;
+
+let regionalMatrixData = {
+  branch: "เขาช่องพราน",
+  region: "เขตราชบุรี",
+  metrics: [
+    { key: "loan_target", label: "เป้าหมายยอดจัด", format: "currency", category: "สินเชื่อ", values: [800000, 800000, 800000, 800000, 800000, 800000, 800000, 800000, 800000, 800000, 800000, 800000] },
+    { key: "loan_actual", label: "วงเงินสินเชื่อที่อนุมัติ", format: "currency", category: "สินเชื่อ", values: [46000, 194000, 1701000, 21600, 251600, 913000, 522400, 308003, null, null, null, null] },
+    { key: "loan_percent", label: "คิดเป็น % (สินเชื่อ)", format: "percent", category: "สินเชื่อ", values: [6.00, 27.00, 192.00, 2.70, 31.45, 38.50, 65.00, 39.00, null, null, null, null] },
+    { key: "loan_cases", label: "จำนวนรายลูกค้า", format: "number", category: "สินเชื่อ", values: [1, 2, 1, 1, 2, 3, 2, 3, null, null, null, null] },
+    { key: "ins_target", label: "เป้าหมายประกัน", format: "currency", category: "ประกัน", values: [60000, 60000, 60000, 60000, 60000, 60000, 60000, 60000, 60000, 60000, 60000, 60000] },
+    { key: "ins_actual", label: "ยอดขายประกัน", format: "currency", category: "ประกัน", values: [28898.56, 13300.12, 2000.00, 15900.00, 40063.70, 29900.00, 13836.00, 32000.95, null, null, null, null] },
+    { key: "ins_cases", label: "จำนวนรายประกัน", format: "number", category: "ประกัน", values: [2, 2, 2, 3, 5, 3, 3, 5, null, null, null, null] },
+    { key: "ins_percent", label: "คิดเป็น % (ประกัน)", format: "percent", category: "ประกัน", values: [48.16, 22.17, 3.30, 26.50, 66.77, 49.83, 23.00, 53.00, null, null, null, null] },
+    { key: "os_total", label: "OS ทั้งหมด (พอร์ตลูกหนี้)", format: "currency", category: "พอร์ตลูกหนี้", values: [20929082, 21043673, 22388345, 22270822, 22207933, 22155151, 22620948, 22800582, null, null, null, null] },
+    { key: "overdue_amt", label: "ยอดหนี้ค้าง x day วงเงิน", format: "currency", category: "พอร์ตลูกหนี้", values: [4072581, 4117046, 3949425, 10414120, 7951304, 8461427, 8512821, 8486891, null, null, null, null] },
+    { key: "overdue_cases", label: "จำนวนราย x day", format: "number", category: "พอร์ตลูกหนี้", values: [30, 35, 36, 42, 42, 47, 44, 52, null, null, null, null] },
+    { key: "overdue_percent", label: "คิดเป็น % x day (NPL)", format: "percent", category: "พอร์ตลูกหนี้", values: [19.46, 19.56, 17.64, 46.76, 35.80, 38.19, 37.63, 37.22, null, null, null, null] },
+    { key: "expense_monthly", label: "ค่าใช้จ่ายต่อเดือน", format: "currency", category: "การตลาด", values: [null, null, null, null, null, null, null, null, null, null, null, null] },
+    { key: "mkt_offline", label: "การทำการตลาด Offline (ครั้ง)", format: "number", category: "การตลาด", values: [null, null, null, null, null, null, null, null, null, null, null, null] },
+    { key: "mkt_online", label: "การทำการตลาด Online (ครั้ง)", format: "number", category: "การตลาด", values: [null, null, null, null, null, null, null, null, null, null, null, null] }
+  ]
+};
+
+function setRegionalViewMode(mode) {
+  currentRegionalViewMode = mode;
+  const modes = ["spotlight", "matrix", "chart"];
+  modes.forEach(m => {
+    const btn = document.getElementById(`btnRegionalMode-${m}`);
+    if (btn) {
+      if (m === mode) {
+        btn.className = "px-3 py-1 rounded-lg bg-white shadow-sm text-orange-600 font-black flex items-center gap-1";
+      } else {
+        btn.className = "px-3 py-1 rounded-lg text-slate-600 font-bold flex items-center gap-1 hover:text-slate-900";
+      }
+    }
+  });
+
+  renderRegionalChecklist();
+}
+
+function selectRegionalMonth(monthStr) {
+  currentRegionalSelectedMonth = monthStr;
+  renderRegionalChecklist();
+}
+
+function renderRegionalTimelinePills() {
+  const container = document.getElementById("regionalTimelinePills");
+  const labelEl = document.getElementById("timelineSelectedLabel");
+  if (!container) return;
+
+  if (labelEl) {
+    labelEl.textContent = `${currentRegionalSelectedMonth} (สาขาเขาช่องพราน)`;
+  }
+
+  const loanPctMetric = regionalMatrixData.metrics.find(m => m.key === "loan_percent");
+
+  container.innerHTML = REGIONAL_MONTHS.map((m, idx) => {
+    const isSelected = m === currentRegionalSelectedMonth;
+    const pctVal = loanPctMetric && loanPctMetric.values[idx] !== null ? loanPctMetric.values[idx] : null;
+
+    let dotColor = "bg-slate-300";
+    if (pctVal !== null) {
+      dotColor = pctVal >= 100 ? "bg-emerald-500" : (pctVal >= 50 ? "bg-orange-500" : "bg-amber-400");
+    }
+
+    const activeClass = isSelected
+      ? "bg-slate-950 text-white font-black shadow-md scale-105 border-slate-950"
+      : "bg-white text-slate-700 font-bold hover:bg-orange-50 border-slate-200";
+
+    return `
+      <button onclick="selectRegionalMonth('${m}')" class="px-3 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 whitespace-nowrap transition-all flex-shrink-0 ${activeClass}">
+        <span class="w-2 h-2 rounded-full ${dotColor}"></span>
+        <span>${m}</span>
+        ${pctVal !== null ? `<span class="text-[10px] ${isSelected ? 'text-orange-300' : 'text-slate-400'} font-normal">(${Math.round(pctVal)}%)</span>` : ''}
+      </button>
+    `;
+  }).join("");
+}
+
+function handleTargetSimulation(addAmount) {
+  const addNum = Number(addAmount) || 0;
+  const addTextEl = document.getElementById("simAddAmountText");
+  const expectedPctEl = document.getElementById("simExpectedPct");
+
+  if (addTextEl) addTextEl.textContent = `+${addNum.toLocaleString()} บาท`;
+
+  const monthIdx = REGIONAL_MONTHS.indexOf(currentRegionalSelectedMonth);
+  if (monthIdx === -1) return;
+
+  const loanTarget = regionalMatrixData.metrics.find(m => m.key === "loan_target")?.values[monthIdx] || 800000;
+  const loanActual = regionalMatrixData.metrics.find(m => m.key === "loan_actual")?.values[monthIdx] || 0;
+
+  const simulatedTotal = loanActual + addNum;
+  const simulatedPct = loanTarget > 0 ? ((simulatedTotal / loanTarget) * 100).toFixed(2) : "0.00";
+
+  if (expectedPctEl) {
+    expectedPctEl.textContent = `${simulatedPct}%`;
+    if (simulatedPct >= 100) {
+      expectedPctEl.className = "text-sm sm:text-base font-black text-emerald-600";
+    } else {
+      expectedPctEl.className = "text-sm sm:text-base font-black text-orange-600";
+    }
+  }
+}
+
+/**
+ * นำเข้าไฟล์ Excel (.xlsx) ที่ดาวน์โหลดจาก SharePoint
+ */
+function handleExcelChecklistUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === "undefined") {
+    alert("ไลบรารีอ่านไฟล์ Excel ยังโหลดไม่เสร็จ กรุณารีเฟรชหน้าเว็บอีกครั้งครับ");
+    return;
+  }
+
+  showToast("⏳ กำลังอ่านไฟล์ Excel จาก SharePoint...");
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      
+      let sheetName = workbook.SheetNames[0];
+      for (const name of workbook.SheetNames) {
+        if (name.includes("เขาช่องพราน") || name.includes("เป้าหมาย") || name.includes("ราชบุรี")) {
+          sheetName = name;
+          break;
+        }
+      }
+      
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      if (jsonRows && jsonRows.length > 3) {
+        parseExcelChecklistData(jsonRows);
+        showToast(`✅ นำเข้าข้อมูลสาขาเขาช่องพรานจากไฟล์ '${file.name}' สำเร็จ!`);
+        triggerCelebrationConfetti();
+        renderRegionalChecklist();
+      } else {
+        throw new Error("โครงสร้างตารางในไฟล์ไม่ตรงกับแบบฟอร์ม");
+      }
+    } catch (err) {
+      console.error("Excel parse error:", err);
+      alert("เกิดข้อผิดพลาดในการอ่านไฟล์: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseExcelChecklistData(rows) {
+  let headerRowIdx = -1;
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
+    const rowStr = (rows[r] || []).join(" ");
+    if (rowStr.includes("ม.ค.") || rowStr.includes("รายงาน") || rowStr.includes("เป้าหมาย")) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+
+  if (headerRowIdx === -1) return;
+
+  const headerRow = rows[headerRowIdx];
+  const colMonthMap = {};
+  headerRow.forEach((colVal, colIdx) => {
+    const str = String(colVal || "").trim();
+    REGIONAL_MONTHS.forEach((m, mIdx) => {
+      const shortM = m.split(" ")[0]; // e.g. "ม.ค."
+      if (str.includes(shortM)) {
+        colMonthMap[mIdx] = colIdx;
+      }
+    });
+  });
+
+  // Read data rows
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || row.length === 0) continue;
+    const rowLabel = String(row[0] || row[1] || "").trim();
+    if (!rowLabel) continue;
+
+    const matchedMetric = regionalMatrixData.metrics.find(m => 
+      rowLabel.includes(m.label.substring(0, 8)) || m.label.includes(rowLabel.substring(0, 8))
+    );
+
+    if (matchedMetric) {
+      REGIONAL_MONTHS.forEach((m, mIdx) => {
+        const cIdx = colMonthMap[mIdx];
+        if (cIdx !== undefined && row[cIdx] !== undefined && row[cIdx] !== null && row[cIdx] !== "") {
+          const rawVal = row[cIdx];
+          if (matchedMetric.format === "percent") {
+            matchedMetric.values[mIdx] = parseFloat(String(rawVal).replace(/%/g, "")) || 0;
+          } else {
+            matchedMetric.values[mIdx] = parseNumericAmount(rawVal);
+          }
+        }
+      });
+    }
+  }
+}
+
+/**
+ * วาดกราฟแนวโน้มผลงาน 12 เดือน (Interactive Trend Chart)
+ */
+function renderRegionalTrendChart() {
+  const canvas = document.getElementById("regionalTrendChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  if (regionalTrendChartInstance) regionalTrendChartInstance.destroy();
+
+  const loanActuals = regionalMatrixData.metrics.find(m => m.key === "loan_actual")?.values || [];
+  const loanTargets = regionalMatrixData.metrics.find(m => m.key === "loan_target")?.values || [];
+  const insActuals = regionalMatrixData.metrics.find(m => m.key === "ins_actual")?.values || [];
+
+  regionalTrendChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: REGIONAL_MONTHS,
+      datasets: [
+        {
+          type: "bar",
+          label: "ยอดสินเชื่ออนุมัติจริง (บาท)",
+          data: loanActuals,
+          backgroundColor: "#ff6400",
+          borderRadius: 8,
+          borderSkipped: false,
+          yAxisID: "y"
+        },
+        {
+          type: "line",
+          label: "เป้าหมายสินเชื่อ (800k)",
+          data: loanTargets,
+          borderColor: "#0f172a",
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointRadius: 3,
+          pointBackgroundColor: "#0f172a",
+          yAxisID: "y"
+        },
+        {
+          type: "line",
+          label: "ยอดขายประกัน (บาท)",
+          data: insActuals,
+          borderColor: "#0284c7",
+          backgroundColor: "rgba(2, 132, 199, 0.1)",
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 4,
+          pointBackgroundColor: "#0284c7",
+          yAxisID: "y1"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "top", labels: { font: { family: "Prompt", weight: "bold", size: 11 } } },
+        tooltip: {
+          padding: 12,
+          callbacks: {
+            label: function(context) {
+              const val = context.raw || 0;
+              return `${context.dataset.label}: ${Number(val).toLocaleString()} บาท`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: "linear",
+          display: true,
+          position: "left",
+          ticks: { callback: (val) => `${(val / 1000).toLocaleString()}k` },
+          grid: { color: "#f1f5f9" }
+        },
+        y1: {
+          type: "linear",
+          display: true,
+          position: "right",
+          ticks: { callback: (val) => `${(val / 1000).toLocaleString()}k` },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * คัดลอกรายงานสรุปผลงานสาขาเขาช่องพรานเพื่อส่ง LINE หัวหน้าเขต
+ */
+function copyRegionalLineReport() {
+  const monthStr = currentRegionalSelectedMonth;
+  const monthIdx = REGIONAL_MONTHS.indexOf(monthStr);
+  if (monthIdx === -1) return;
+
+  const getV = (key) => regionalMatrixData.metrics.find(m => m.key === key)?.values[monthIdx];
+
+  const loanT = getV("loan_target") || 800000;
+  const loanA = getV("loan_actual") || 0;
+  const loanPct = getV("loan_percent") || 0;
+  const loanCases = getV("loan_cases") || 0;
+
+  const insT = getV("ins_target") || 60000;
+  const insA = getV("ins_actual") || 0;
+  const insPct = getV("ins_percent") || 0;
+  const insCases = getV("ins_cases") || 0;
+
+  const osTotal = getV("os_total") || 0;
+  const overdueAmt = getV("overdue_amt") || 0;
+  const overduePct = getV("overdue_percent") || 0;
+
+  const msg = [
+    `🎯 รายงานผลงานเป้าหมาย สาขาเขาช่องพราน (เขตราชบุรี)`,
+    `📅 ประจำงวด: ${monthStr} 2569`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `💳 1. ยอดจัดสินเชื่อ:`,
+    `• อนุมัติจริง: ${loanA.toLocaleString()} บาท (${Number(loanPct).toFixed(1)}%)`,
+    `• เป้าหมาย: ${loanT.toLocaleString()} บาท | ลูกค้าใหม่: ${loanCases} ราย`,
+    ``,
+    `🛡️ 2. ยอดขายประกัน (Non-Motor):`,
+    `• ทำได้จริง: ${Math.round(insA).toLocaleString()} บาท (${Number(insPct).toFixed(1)}%)`,
+    `• เป้าหมาย: ${insT.toLocaleString()} บาท | จำนวน: ${insCases} ราย`,
+    ``,
+    `📊 3. พอร์ตลูกหนี้ OS & หนี้ค้าง:`,
+    `• OS รวม: ${(osTotal / 1000000).toFixed(2)} ล้านบาท`,
+    `• ยอดหนี้ค้าง: ${(overdueAmt / 1000000).toFixed(2)} ล้านบาท (${Number(overduePct).toFixed(2)}%)`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `✨ ข้อมูลจากระบบติดตามงานสาขา เงินไชโย (เขาช่องพราน)`
+  ].join("\n");
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      showToast(`📋 คัดลอกรายงานสรุปประจำเดือน '${monthStr}' สำหรับส่ง LINE แล้ว!`);
+      triggerCelebrationConfetti();
+    }).catch(() => {
+      prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
+    });
+  } else {
+    prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
+  }
+}
+
+/**
+ * แสดงผล Checklist ความสำเร็จเป้าหมาย เขตราชบุรี 2569 (สาขาเขาช่องพราน)
+ */
+function renderRegionalChecklist() {
+  renderRegionalTimelinePills();
+
+  const container = document.getElementById("regionalChecklistContainer");
+  const badgesContainer = document.getElementById("regionalSummaryBadges");
+  if (!container) return;
+
+  // 1. Chart View Mode
+  if (currentRegionalViewMode === "chart") {
+    if (badgesContainer) {
+      badgesContainer.innerHTML = `
+        <div class="p-2.5 rounded-xl bg-orange-50 border border-orange-200">
+          <div class="text-[11px] font-bold text-orange-800">เป้าสินเชื่อรายเดือน</div>
+          <div class="text-sm font-black text-orange-950">800,000 บาท/ด.</div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+          <div class="text-[11px] font-bold text-emerald-800">เดือนพีคสูงสุด</div>
+          <div class="text-sm font-black text-emerald-700">มี.ค. 69 (1.7M)</div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+          <div class="text-[11px] font-bold text-sky-800">เป้าประกันรายเดือน</div>
+          <div class="text-sm font-black text-sky-950">60,000 บาท/ด.</div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-purple-50 border border-purple-200">
+          <div class="text-[11px] font-bold text-purple-800">พอร์ต OS ล่าสุด</div>
+          <div class="text-sm font-black text-purple-700">22.8 ล้านบาท</div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+          <h5 class="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-orange-600"></i>
+            กราฟเปรียบเทียบผลงาน 12 เดือน (ยอดจัดสินเชื่อ & ยอดขายประกัน)
+          </h5>
+          <span class="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md">12 Months Trend</span>
+        </div>
+        <div class="h-64 sm:h-72 w-full relative">
+          <canvas id="regionalTrendChart"></canvas>
+        </div>
+      </div>
+    `;
+
+    setTimeout(renderRegionalTrendChart, 50);
+    initLucideIcons();
+    return;
+  }
+
+  // 2. Full Year Matrix Table View Mode
+  if (currentRegionalViewMode === "matrix") {
+    if (badgesContainer) {
+      let totalLoanTargetYear = 0;
+      let totalLoanActualYear = 0;
+      let totalInsTargetYear = 0;
+      let totalInsActualYear = 0;
+
+      const loanT = regionalMatrixData.metrics.find(m => m.key === "loan_target");
+      const loanA = regionalMatrixData.metrics.find(m => m.key === "loan_actual");
+      const insT = regionalMatrixData.metrics.find(m => m.key === "ins_target");
+      const insA = regionalMatrixData.metrics.find(m => m.key === "ins_actual");
+
+      if (loanT) totalLoanTargetYear = loanT.values.reduce((a, b) => a + (b || 0), 0);
+      if (loanA) totalLoanActualYear = loanA.values.reduce((a, b) => a + (b || 0), 0);
+      if (insT) totalInsTargetYear = insT.values.reduce((a, b) => a + (b || 0), 0);
+      if (insA) totalInsActualYear = insA.values.reduce((a, b) => a + (b || 0), 0);
+
+      const loanPct = totalLoanTargetYear > 0 ? ((totalLoanActualYear / totalLoanTargetYear) * 100).toFixed(1) : "0.0";
+      const insPct = totalInsTargetYear > 0 ? ((totalInsActualYear / totalInsTargetYear) * 100).toFixed(1) : "0.0";
+
+      badgesContainer.innerHTML = `
+        <div class="p-2.5 rounded-xl bg-orange-50 border border-orange-200">
+          <div class="text-[11px] font-bold text-orange-800">เป้าสินเชื่อรวมปี 2569</div>
+          <div class="text-sm sm:text-base font-black text-orange-950">${totalLoanTargetYear.toLocaleString()} <span class="text-xs font-normal">บาท</span></div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+          <div class="text-[11px] font-bold text-emerald-800">อนุมัติสะสมปี 2569</div>
+          <div class="text-sm sm:text-base font-black text-emerald-700">${totalLoanActualYear.toLocaleString()} <span class="text-xs font-normal">บาท (${loanPct}%)</span></div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+          <div class="text-[11px] font-bold text-sky-800">เป้าประกันรวมปี 2569</div>
+          <div class="text-sm sm:text-base font-black text-sky-950">${totalInsTargetYear.toLocaleString()} <span class="text-xs font-normal">บาท</span></div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-purple-50 border border-purple-200">
+          <div class="text-[11px] font-bold text-purple-800">ขายประกันสะสมปี 2569</div>
+          <div class="text-sm sm:text-base font-black text-purple-700">${Math.round(totalInsActualYear).toLocaleString()} <span class="text-xs font-normal">บาท (${insPct}%)</span></div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="overflow-x-auto rounded-2xl border border-slate-300 shadow-sm">
+        <table class="w-full text-left text-xs border-collapse bg-white">
+          <thead>
+            <tr class="bg-slate-900 text-white font-black text-center text-[11px] whitespace-nowrap">
+              <th class="py-3 px-3 text-left sticky left-0 bg-slate-900 z-10 min-w-[180px]">รายงาน / ตัวชี้วัด</th>
+              ${REGIONAL_MONTHS.map(m => `<th class="py-3 px-2.5 border-l border-slate-800">${m}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            ${regionalMatrixData.metrics.map((row, idx) => {
+              const isHeaderRow = row.key.includes("target");
+              const rowBgClass = isHeaderRow ? "bg-slate-50 font-bold" : (idx % 2 === 0 ? "bg-white" : "bg-slate-50/50");
+
+              return `
+                <tr class="${rowBgClass} hover:bg-orange-50/60 transition-colors">
+                  <td class="py-2.5 px-3 font-bold text-slate-900 sticky left-0 ${rowBgClass} z-10 border-r border-slate-200 flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full ${row.category === 'สินเชื่อ' ? 'bg-orange-500' : (row.category === 'ประกัน' ? 'bg-sky-500' : 'bg-purple-500')}"></span>
+                    <span>${escapeHtml(row.label)}</span>
+                  </td>
+                  ${row.values.map(val => {
+                    let displayVal = "-";
+                    let textClass = "text-slate-700 font-semibold";
+
+                    if (val !== null && val !== undefined) {
+                      if (row.format === "currency") {
+                        displayVal = Number(val).toLocaleString();
+                        textClass = "text-slate-900 font-bold";
+                      } else if (row.format === "percent") {
+                        displayVal = `${Number(val).toFixed(2)}%`;
+                        if (row.key === "loan_percent" || row.key === "ins_percent") {
+                          textClass = Number(val) >= 100 ? "text-emerald-700 font-black" : (Number(val) >= 50 ? "text-orange-600 font-bold" : "text-rose-600 font-bold");
+                        } else {
+                          textClass = "text-purple-700 font-bold";
+                        }
+                      } else {
+                        displayVal = Number(val).toLocaleString();
+                        textClass = "text-slate-900 font-bold";
+                      }
+                    }
+
+                    return `<td class="py-2.5 px-2 text-right border-l border-slate-200 text-[11px] whitespace-nowrap ${textClass}">${displayVal}</td>`;
+                  }).join("")}
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    initLucideIcons();
+    return;
+  }
+
+  // 3. Spotlight Mode (Default)
+  const monthIdx = REGIONAL_MONTHS.indexOf(currentRegionalSelectedMonth);
+  if (monthIdx === -1) return;
+
+  const getMetricVal = (key, mIdx = monthIdx) => {
+    const m = regionalMatrixData.metrics.find(x => x.key === key);
+    return m && m.values[mIdx] !== null && m.values[mIdx] !== undefined ? m.values[mIdx] : null;
+  };
+
+  const loanTarget = getMetricVal("loan_target") || 800000;
+  const loanActual = getMetricVal("loan_actual") || 0;
+  const loanPercent = getMetricVal("loan_percent") || (loanTarget > 0 ? (loanActual / loanTarget) * 100 : 0);
+  const loanCases = getMetricVal("loan_cases") || 0;
+
+  const insTarget = getMetricVal("ins_target") || 60000;
+  const insActual = getMetricVal("ins_actual") || 0;
+  const insPercent = getMetricVal("ins_percent") || (insTarget > 0 ? (insActual / insTarget) * 100 : 0);
+  const insCases = getMetricVal("ins_cases") || 0;
+
+  const osTotal = getMetricVal("os_total") || 0;
+  const overdueAmt = getMetricVal("overdue_amt") || 0;
+  const overdueCases = getMetricVal("overdue_cases") || 0;
+  const overduePercent = getMetricVal("overdue_percent") || 0;
+
+  // Calculate Growth Deltas vs Previous Month
+  let loanDeltaPill = "";
+  let insDeltaPill = "";
+  if (monthIdx > 0) {
+    const prevLoanActual = getMetricVal("loan_actual", monthIdx - 1);
+    const prevInsActual = getMetricVal("ins_actual", monthIdx - 1);
+    const prevMonthName = REGIONAL_MONTHS[monthIdx - 1];
+
+    if (prevLoanActual !== null && prevLoanActual > 0) {
+      const diffPct = (((loanActual - prevLoanActual) / prevLoanActual) * 100).toFixed(1);
+      const isUp = Number(diffPct) >= 0;
+      loanDeltaPill = `
+        <span class="text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 ${isUp ? 'delta-pill-up' : 'delta-pill-down'}">
+          ${isUp ? '▲ +' : '▼ '}${diffPct}% vs ${prevMonthName}
+        </span>
+      `;
+    }
+
+    if (prevInsActual !== null && prevInsActual > 0) {
+      const diffPct = (((insActual - prevInsActual) / prevInsActual) * 100).toFixed(1);
+      const isUp = Number(diffPct) >= 0;
+      insDeltaPill = `
+        <span class="text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 ${isUp ? 'delta-pill-up' : 'delta-pill-down'}">
+          ${isUp ? '▲ +' : '▼ '}${diffPct}% vs ${prevMonthName}
+        </span>
+      `;
+    }
+  }
+
+  // YTD Cumulative calculation (12-month totals)
+  let ytdLoanActual = 0;
+  let ytdLoanTarget = 0;
+  let ytdInsActual = 0;
+  let ytdInsTarget = 0;
+
+  const allLoanA = regionalMatrixData.metrics.find(m => m.key === "loan_actual")?.values || [];
+  const allLoanT = regionalMatrixData.metrics.find(m => m.key === "loan_target")?.values || [];
+  const allInsA = regionalMatrixData.metrics.find(m => m.key === "ins_actual")?.values || [];
+  const allInsT = regionalMatrixData.metrics.find(m => m.key === "ins_target")?.values || [];
+
+  allLoanA.forEach((v, i) => { if (v !== null) ytdLoanActual += v; });
+  allLoanT.forEach((v, i) => { if (v !== null) ytdLoanTarget += v; });
+  allInsA.forEach((v, i) => { if (v !== null) ytdInsActual += v; });
+  allInsT.forEach((v, i) => { if (v !== null) ytdInsTarget += v; });
+
+  const ytdLoanPct = ytdLoanTarget > 0 ? ((ytdLoanActual / ytdLoanTarget) * 100).toFixed(1) : "0.0";
+  const ytdInsPct = ytdInsTarget > 0 ? ((ytdInsActual / ytdInsTarget) * 100).toFixed(1) : "0.0";
+
+  // Render Badges for this month
+  if (badgesContainer) {
+    badgesContainer.innerHTML = `
+      <div class="p-2.5 rounded-xl bg-orange-50 border border-orange-200">
+        <div class="text-[11px] font-bold text-orange-800">เป้าหมายยอดจัด (${currentRegionalSelectedMonth})</div>
+        <div class="text-sm sm:text-base font-black text-orange-950">${loanTarget.toLocaleString()} <span class="text-xs font-normal">บาท</span></div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+        <div class="text-[11px] font-bold text-emerald-800">อนุมัติจริง (${currentRegionalSelectedMonth})</div>
+        <div class="text-sm sm:text-base font-black text-emerald-700">${loanActual.toLocaleString()} <span class="text-xs font-normal">บาท (${Number(loanPercent).toFixed(1)}%)</span></div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+        <div class="text-[11px] font-bold text-sky-800">ยอดขายประกัน (${currentRegionalSelectedMonth})</div>
+        <div class="text-sm sm:text-base font-black text-sky-950">${Math.round(insActual).toLocaleString()} <span class="text-xs font-normal">บาท (${Number(insPercent).toFixed(1)}%)</span></div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-purple-50 border border-purple-200">
+        <div class="text-[11px] font-bold text-purple-800">พอร์ต OS ทั้งหมด</div>
+        <div class="text-sm sm:text-base font-black text-purple-700">${osTotal > 0 ? (osTotal / 1000000).toFixed(2) + " ล้านบาท" : "-"}</div>
+      </div>
+    `;
+  }
+
+  // Radial Gauge SVG helper (Apple Activity Ring style)
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const loanOffset = circumference - (Math.min(Number(loanPercent), 100) / 100) * circumference;
+  const insOffset = circumference - (Math.min(Number(insPercent), 100) / 100) * circumference;
+  const isChampionMonth = Number(loanPercent) >= 100;
+
+  // 4 Detailed Section Cards + YTD Bar + Executive Box
+  container.innerHTML = `
+    <!-- 🏆 YTD 2569 Full-Year Cumulative Banner -->
+    <div class="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-950 text-white shadow-md border border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black shadow-inner flex-shrink-0">
+          <i data-lucide="trophy" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs sm:text-sm font-black text-white">ผลงานสะสมทั้งปี 2569 (YTD Cumulative)</span>
+            <span class="text-[10px] bg-orange-500/20 text-orange-300 font-extrabold px-2 py-0.5 rounded-full border border-orange-400/30">สาขาเขาช่องพราน</span>
+          </div>
+          <p class="text-[11px] text-slate-300">สะสม 8 เดือนแรก: สินเชื่อ ${(ytdLoanActual / 1000000).toFixed(2)}M / ประกัน ${Math.round(ytdInsActual).toLocaleString()} บาท</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-700/60 pt-2 md:pt-0">
+        <div class="text-right">
+          <div class="text-[10px] text-slate-400 font-bold">สินเชื่อสะสมปี 69</div>
+          <div class="text-xs sm:text-sm font-black text-orange-400">${(ytdLoanActual / 1000000).toFixed(2)}M <span class="text-[11px] text-slate-300 font-normal">(${ytdLoanPct}%)</span></div>
+        </div>
+        <div class="w-px h-7 bg-slate-700"></div>
+        <div class="text-right">
+          <div class="text-[10px] text-slate-400 font-bold">ประกันสะสมปี 69</div>
+          <div class="text-xs sm:text-sm font-black text-sky-400">${Math.round(ytdInsActual / 1000).toLocaleString()}k <span class="text-[11px] text-slate-300 font-normal">(${ytdInsPct}%)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Spotlight Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 animate-fade-in">
+      
+      <!-- 1. หมวดสินเชื่อ (พร้อม Apple Activity Ring) -->
+      <div class="p-4 rounded-2xl ${isChampionMonth ? 'champion-card' : 'bg-gradient-to-b from-orange-50/50 to-white'} border border-orange-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center border-b border-orange-200/80 pb-2.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="banknote" class="w-4 h-4 text-orange-600"></i>
+            <h5 class="text-xs sm:text-sm font-black text-orange-950">
+              1. ยอดจัดสินเชื่อ (${currentRegionalSelectedMonth})
+            </h5>
+            ${isChampionMonth ? `<span class="text-[10px] font-black bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">⭐ ทะลุเป้า!</span>` : ''}
+          </div>
+          <div class="flex items-center gap-1.5">
+            ${loanDeltaPill}
+            <span class="text-xs font-black ${isChampionMonth ? 'text-emerald-700 bg-emerald-100' : 'text-orange-700 bg-orange-100'} px-2.5 py-0.5 rounded-full border border-orange-300">
+              ${Number(loanPercent).toFixed(2)}%
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Circular Ring Gauge -->
+          <div class="relative w-16 h-16 flex-shrink-0 flex items-center justify-center">
+            <svg class="radial-progress-ring w-16 h-16" viewBox="0 0 64 64">
+              <circle class="radial-progress-bg" stroke-width="5" fill="transparent" r="${radius}" cx="32" cy="32" />
+              <circle class="radial-progress-bar" stroke="${isChampionMonth ? '#059669' : '#ff6400'}" stroke-width="5" stroke-linecap="round" fill="transparent" r="${radius}" cx="32" cy="32" stroke-dasharray="${circumference}" stroke-dashoffset="${loanOffset}" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span class="text-[11px] font-black ${isChampionMonth ? 'text-emerald-700' : 'text-slate-900'}">${Math.round(loanPercent)}%</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 flex-grow text-center">
+            <div class="p-1.5 rounded-xl bg-white/90 border border-orange-100">
+              <div class="text-[9px] text-slate-500 font-bold">เป้าหมาย</div>
+              <div class="text-xs font-black text-slate-900">${(loanTarget / 1000).toLocaleString()}k</div>
+            </div>
+            <div class="p-1.5 rounded-xl bg-white/90 border border-orange-100">
+              <div class="text-[9px] text-slate-500 font-bold">อนุมัติจริง</div>
+              <div class="text-xs font-black text-emerald-700">${(loanActual / 1000).toLocaleString()}k</div>
+            </div>
+            <div class="p-1.5 rounded-xl bg-white/90 border border-orange-100">
+              <div class="text-[9px] text-slate-500 font-bold">ลูกค้าใหม่</div>
+              <div class="text-xs font-black text-sky-700">${loanCases} ราย</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. หมวดประกัน (พร้อม Apple Activity Ring) -->
+      <div class="p-4 rounded-2xl bg-gradient-to-b from-sky-50/50 to-white border border-sky-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center border-b border-sky-200/80 pb-2.5">
+          <h5 class="text-xs sm:text-sm font-black text-sky-950 flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-sky-600"></i>
+            2. เป้าหมายประกัน (${currentRegionalSelectedMonth})
+          </h5>
+          <div class="flex items-center gap-1.5">
+            ${insDeltaPill}
+            <span class="text-xs font-black ${Number(insPercent) >= 100 ? 'text-emerald-700 bg-emerald-100' : 'text-sky-700 bg-sky-100'} px-2.5 py-0.5 rounded-full border border-sky-300">
+              ${Number(insPercent).toFixed(2)}%
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Circular Ring Gauge -->
+          <div class="relative w-16 h-16 flex-shrink-0 flex items-center justify-center">
+            <svg class="radial-progress-ring w-16 h-16" viewBox="0 0 64 64">
+              <circle class="radial-progress-bg" stroke-width="5" fill="transparent" r="${radius}" cx="32" cy="32" />
+              <circle class="radial-progress-bar" stroke="#0284c7" stroke-width="5" stroke-linecap="round" fill="transparent" r="${radius}" cx="32" cy="32" stroke-dasharray="${circumference}" stroke-dashoffset="${insOffset}" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span class="text-[11px] font-black text-slate-900">${Math.round(insPercent)}%</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 flex-grow text-center">
+            <div class="p-1.5 rounded-xl bg-white border border-sky-100">
+              <div class="text-[9px] text-slate-500 font-bold">เป้าหมาย</div>
+              <div class="text-xs font-black text-slate-900">${(insTarget / 1000).toLocaleString()}k</div>
+            </div>
+            <div class="p-1.5 rounded-xl bg-white border border-sky-100">
+              <div class="text-[9px] text-slate-500 font-bold">ยอดขายจริง</div>
+              <div class="text-xs font-black text-sky-700">${Math.round(insActual).toLocaleString()}</div>
+            </div>
+            <div class="p-1.5 rounded-xl bg-white border border-sky-100">
+              <div class="text-[9px] text-slate-500 font-bold">จำนวนราย</div>
+              <div class="text-xs font-black text-purple-700">${insCases} ราย</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. หมวดคุณภาพพอร์ต OS -->
+      <div class="p-4 rounded-2xl bg-gradient-to-b from-purple-50/50 to-white border border-purple-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center border-b border-purple-200/80 pb-2.5">
+          <h5 class="text-xs sm:text-sm font-black text-purple-950 flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
+            3. ยอดพอร์ตลูกหนี้ OS & หนี้ค้าง (${currentRegionalSelectedMonth})
+          </h5>
+          <span class="text-xs font-black text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300">
+            หนี้ค้าง ${Number(overduePercent).toFixed(2)}%
+          </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center pt-1">
+          <div class="p-2 rounded-xl bg-white border border-purple-100">
+            <div class="text-[10px] text-slate-500 font-bold">OS รวมทั้งหมด</div>
+            <div class="text-xs font-black text-slate-900">${osTotal > 0 ? (osTotal / 1000000).toFixed(2) + "M" : "-"}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-white border border-purple-100">
+            <div class="text-[10px] text-slate-500 font-bold">ยอดหนี้ค้าง x day</div>
+            <div class="text-xs font-black text-rose-600">${overdueAmt > 0 ? (overdueAmt / 1000000).toFixed(2) + "M" : "-"}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-white border border-purple-100">
+            <div class="text-[10px] text-slate-500 font-bold">จำนวนรายค้าง</div>
+            <div class="text-xs font-black text-slate-900">${overdueCases} ราย</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. หมวดการตลาด & กิจกรรมสาขา -->
+      <div class="p-4 rounded-2xl bg-gradient-to-b from-slate-50 to-white border border-slate-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+          <h5 class="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+            <i data-lucide="megaphone" class="w-4 h-4 text-orange-600"></i>
+            4. กิจกรรมการตลาดสาขาเขาช่องพราน
+          </h5>
+          <span class="text-[11px] text-slate-500 font-bold">เขตราชบุรี</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-center pt-1">
+          <div class="p-2.5 rounded-xl bg-white border border-slate-200">
+            <div class="text-[11px] text-slate-600 font-bold">การตลาด Offline</div>
+            <div class="text-xs font-black text-orange-600 mt-0.5">ลงพื้นที่ / ออกบูธ</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-white border border-slate-200">
+            <div class="text-[11px] text-slate-600 font-bold">การตลาด Online</div>
+            <div class="text-xs font-black text-sky-600 mt-0.5">Facebook / LINE</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 🤖 5. Executive Smart Summary & One-Click LINE Share Button -->
+    <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-white border border-emerald-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
+          <i data-lucide="message-square" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <div class="text-xs font-black text-emerald-950">💡 สรุปไฮไลท์ประจำงวด ${currentRegionalSelectedMonth} (สาขาเขาช่องพราน)</div>
+          <p class="text-[11px] text-slate-600 font-medium">สินเชื่อ ${loanActual.toLocaleString()} บาท (${Number(loanPercent).toFixed(1)}%) • ประกัน ${Math.round(insActual).toLocaleString()} บาท (${Number(insPercent).toFixed(1)}%)</p>
+        </div>
+      </div>
+      <button onclick="copyRegionalLineReport()" class="neu-button px-3.5 py-2 text-xs text-white bg-emerald-600 hover:bg-emerald-700 font-black flex items-center justify-center gap-1.5 shadow-md flex-shrink-0 border-0 rounded-xl" title="คัดลอกข้อความสรุปเพื่อส่งเข้ากลุ่ม LINE เขต">
+        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+        <span>📋 คัดลอกสรุปส่ง LINE เขต</span>
+      </button>
+    </div>
+  `;
+
+  // Initialize simulator for this month
+  const simInput = document.getElementById("simLoanRange");
+  if (simInput) {
+    simInput.value = 0;
+    handleTargetSimulation(0);
+  }
+
+  initLucideIcons();
 }

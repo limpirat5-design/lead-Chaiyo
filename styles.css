@@ -1,31 +1,54 @@
 /* ==========================================================================
-   Pure Neumorphism (Soft UI) - "Chaiyo Dynamic Fusion" Theme
-   Palette: Sunset Orange (#ff6b00), Electric Cyan/Blue (#0284c7), 
-            Obsidian Black (#0b0f19), Pearl White (#ffffff)
-   Canvas: #e6edf5 | Ultra High-Contrast & Smooth Spring Micro-Interactions
+   Chaiyo Vibrant Fusion (Apple Polish + Rich Color Harmony)
+   - High Contrast & Visual Depth
+   - Distinctive Section Identifiers & Vibrant Accents
+   - Crisp Typography & Tactile Controls
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
 
 :root {
-  /* Chaiyo Dynamic Fusion Canvas */
-  --neu-bg: #e6edf5;
-  --neu-light: #ffffff;
-  --neu-dark: #b4c2d4;
-  --neu-shadow-deep: #a4b3c7;
-  
-  /* Primary Theme Accents */
-  --sunset-orange: #ff6b00;
-  --sunset-orange-light: #ff8833;
-  --sunset-orange-glow: rgba(255, 107, 0, 0.35);
-  
-  --electric-blue: #0284c7;
-  --electric-blue-light: #0ea5e9;
-  --electric-blue-glow: rgba(2, 132, 199, 0.3);
-  
-  --obsidian-black: #0b0f19;
-  --text-muted: #475569;
-  --pearl-white: #ffffff;
+  /* Canvas & Base Surfaces */
+  --bg-canvas: #eef2f6;
+  --bg-gradient: radial-gradient(at 0% 0%, rgba(255, 237, 213, 0.4) 0px, transparent 50%),
+                 radial-gradient(at 100% 0%, rgba(224, 242, 254, 0.4) 0px, transparent 50%),
+                 radial-gradient(at 50% 100%, rgba(238, 242, 246, 0.8) 0px, transparent 50%),
+                 #eef2f6;
+
+  --card-surface: #ffffff;
+  --card-border: #cbd5e1;
+  --card-border-subtle: #e2e8f0;
+
+  /* Typography */
+  --text-main: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  /* Brand Vibrant Accents */
+  --chaiyo-orange: #ff6400;
+  --chaiyo-orange-dark: #ea580c;
+  --orange-gradient: linear-gradient(135deg, #ff7a1a 0%, #ea580c 100%);
+  --orange-card-bg: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+
+  --sky-blue: #0284c7;
+  --blue-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  --blue-card-bg: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+
+  --emerald-green: #10b981;
+  --emerald-dark: #059669;
+  --green-gradient: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  --green-card-bg: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+
+  --royal-purple: #6366f1;
+  --purple-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  --purple-card-bg: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 4px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 16px 32px -4px rgba(15, 23, 42, 0.12), 0 6px 12px -2px rgba(15, 23, 42, 0.06);
+  --shadow-orange: 0 8px 24px -2px rgba(234, 88, 12, 0.35);
+  --shadow-blue: 0 8px 24px -2px rgba(2, 132, 199, 0.35);
 }
 
 * {
@@ -34,106 +57,227 @@
 }
 
 body {
-  font-family: 'Prompt', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--neu-bg);
-  color: var(--obsidian-black);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Prompt", "Plus Jakarta Sans", sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
   min-height: 100vh;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* --------------------------------------------------------------------------
-   Pure Neumorphic Card Elevations (Chaiyo Dynamic Fusion)
+   Cards & Surfaces
    -------------------------------------------------------------------------- */
 .neu-card {
-  background: var(--neu-bg);
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 7px 7px 18px var(--neu-dark), 
-             -7px -7px 18px var(--neu-light);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), 
-              box-shadow 0.2s ease;
+  background: var(--card-surface);
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-card);
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .neu-card:hover {
-  box-shadow: 9px 9px 22px var(--neu-dark), 
-             -9px -9px 22px var(--neu-light);
+  box-shadow: var(--shadow-card-hover);
+  border-color: #94a3b8;
 }
 
 .neu-card-sm {
-  background: var(--neu-bg);
+  background: var(--card-surface);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 4px 4px 11px var(--neu-dark), 
-             -4px -4px 11px var(--neu-light);
+  border: 1px solid var(--card-border-subtle);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
 
-/* Neumorphic Inset Groove Track */
+.neu-card-sm:hover {
+  box-shadow: var(--shadow-card);
+}
+
+/* Top Header Bar */
+header.neu-card {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+}
+
+header.neu-card h1 {
+  color: #0f172a !important;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+
+header.neu-card p {
+  color: #475569 !important;
+}
+
+#syncStatus {
+  background: #f0f9ff !important;
+  border: 1.5px solid #bae6fd !important;
+  color: #0369a1 !important;
+  border-radius: 980px;
+  font-weight: 800;
+}
+
+/* Segmented Capsule Track */
 .neu-track {
-  background: var(--neu-bg);
-  border-radius: 16px;
-  box-shadow: inset 3px 3px 6px var(--neu-shadow-deep), 
-              inset -3px -3px 6px var(--neu-light);
+  background: #e2e8f0;
+  border-radius: 980px;
   border: 1px solid #cbd5e1;
   padding: 0.25rem;
 }
 
-/* Dynamic Sunset Orange Banner */
+/* Radiant Sunset Alert Banner */
 .neu-card-sunset {
-  background: linear-gradient(140deg, #e6edf5 0%, #ffedd5 65%, #fed7aa 100%);
+  background: linear-gradient(135deg, #ea580c 0%, #f97316 60%, #fb923c 100%);
   border-radius: 20px;
-  border: 1px solid rgba(255, 107, 0, 0.45);
-  box-shadow: 7px 7px 18px var(--neu-dark), 
-             -7px -7px 18px var(--neu-light);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-orange);
+  color: #ffffff;
   position: relative;
   overflow: hidden;
 }
 
-.neu-card-sunset::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent 45%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 55%
-  );
-  transform: rotate(30deg);
-  animation: shimmer 6s infinite;
+.neu-card-sunset h3 {
+  color: #ffffff !important;
+  font-weight: 900;
 }
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%) rotate(30deg); }
-  20%, 100% { transform: translateX(100%) rotate(30deg); }
+.neu-card-sunset p {
+  color: #ffffff !important;
+}
+
+.neu-card-sunset #todayAlertDetails span {
+  color: #fef08a !important;
+  font-weight: 900;
+}
+
+/* Banner Button (High Contrast Pill) */
+.neu-card-sunset .neu-button {
+  background: #0f172a !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 980px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.neu-card-sunset .neu-button span {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.neu-card-sunset .neu-button i {
+  color: #fb923c !important;
+}
+
+.neu-card-sunset .neu-button:hover {
+  background: #1e293b !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* --------------------------------------------------------------------------
-   Neumorphic Executive KPI Cards (Dashboard)
+   Navigation Tabs (Vibrant High-Contrast Dock)
+   -------------------------------------------------------------------------- */
+nav.neu-card-sm {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: var(--shadow-card);
+  padding: 0.35rem;
+  border-radius: 980px;
+}
+
+nav .neu-button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #475569;
+  border-radius: 980px;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+nav .neu-button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+nav .neu-button.active {
+  background: var(--orange-gradient) !important;
+  color: #ffffff !important;
+  font-weight: 900;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45) !important;
+}
+
+nav .neu-button.active i {
+  color: #ffffff !important;
+  stroke-width: 2.5;
+}
+
+/* --------------------------------------------------------------------------
+   Executive KPI Cards (Rich Colored Cards)
    -------------------------------------------------------------------------- */
 .kpi-card {
-  background: var(--neu-bg);
   border-radius: 20px;
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 6px 6px 16px var(--neu-dark), 
-             -6px -6px 16px var(--neu-light);
-  padding: 1.25rem 1.15rem;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: var(--shadow-card);
+  padding: 1.35rem 1.25rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .kpi-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 8px 8px 20px var(--neu-dark), 
-             -8px -8px 20px var(--neu-light);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Card 1: Leads (Sky Blue Theme) */
+.kpi-card:nth-child(1) {
+  background: var(--blue-card-bg);
+  border-color: #7dd3fc;
+}
+.kpi-card:nth-child(1) .kpi-icon-well {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+}
+
+/* Card 2: Total Amount (Sunset Orange Theme) */
+.kpi-card:nth-child(2) {
+  background: var(--orange-card-bg);
+  border-color: #fdba74;
+}
+.kpi-card:nth-child(2) .kpi-icon-well {
+  background: #ea580c;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.35);
+}
+
+/* Card 3: Approved Amount (Emerald Green Theme) */
+.kpi-card:nth-child(3) {
+  background: var(--green-card-bg);
+  border-color: #86efac;
+}
+.kpi-card:nth-child(3) .kpi-icon-well {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35);
+}
+
+/* Card 4: Win Rate (Purple Theme) */
+.kpi-card:nth-child(4) {
+  background: var(--purple-card-bg);
+  border-color: #d8b4fe;
+}
+.kpi-card:nth-child(4) .kpi-icon-well {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
 }
 
 .kpi-card .kpi-icon-well {
@@ -143,57 +287,61 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 2.5px 2.5px 5px var(--neu-shadow-deep), 
-              inset -2.5px -2.5px 5px var(--neu-light);
   flex-shrink: 0;
 }
 
-/* Progress bar inside KPI */
+/* Progress Bars inside KPI */
 .neu-progress-bg {
-  background: var(--neu-bg);
-  border-radius: 9999px;
-  box-shadow: inset 2px 2px 4px var(--neu-shadow-deep), 
-              inset -2px -2px 4px var(--neu-light);
+  background: #e2e8f0;
+  border-radius: 980px;
   height: 8px;
   width: 100%;
   overflow: hidden;
-  border: 1px solid #cbd5e1;
 }
 
 .neu-progress-fill-orange {
-  background: linear-gradient(90deg, #ff8833, #ff6b00);
+  background: var(--orange-gradient);
   height: 100%;
-  border-radius: 9999px;
-  box-shadow: 0 0 8px var(--sunset-orange-glow);
-  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 980px;
 }
 
 .neu-progress-fill-blue {
-  background: linear-gradient(90deg, #38bdf8, #0284c7);
+  background: var(--blue-gradient);
   height: 100%;
-  border-radius: 9999px;
-  box-shadow: 0 0 8px var(--electric-blue-glow);
-  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 980px;
 }
 
 .neu-progress-fill-green {
-  background: linear-gradient(90deg, #4ade80, #16a34a);
+  background: var(--green-gradient);
   height: 100%;
-  border-radius: 9999px;
-  box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
-  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 980px;
+}
+
+/* 🎯 Target Progress Gauge */
+.target-progress-track {
+  background: #e2e8f0;
+  border-radius: 980px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.1);
+  border: 1px solid #cbd5e1;
+}
+
+.target-progress-fill {
+  background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #10b981 100%);
+  height: 100%;
+  border-radius: 980px;
+  transition: width 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* --------------------------------------------------------------------------
-   Custom Neumorphic Vehicle Type Selector Cards
+   Vehicle Type Selectors
    -------------------------------------------------------------------------- */
 .vehicle-type-btn {
-  background: var(--neu-bg);
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
   border-radius: 16px;
-  box-shadow: 4px 4px 11px var(--neu-dark), 
-             -4px -4px 11px var(--neu-light);
-  padding: 0.85rem 0.65rem;
+  box-shadow: var(--shadow-sm);
+  padding: 0.9rem 0.65rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -206,29 +354,31 @@ body {
 
 .vehicle-type-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 6px 6px 14px var(--neu-dark), 
-             -6px -6px 14px var(--neu-light);
-  border-color: rgba(255, 107, 0, 0.4);
+  box-shadow: var(--shadow-card);
+  border-color: #94a3b8;
 }
 
 .vehicle-type-btn .icon-box {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  background: var(--neu-bg);
-  box-shadow: inset 2px 2px 5px var(--neu-shadow-deep), 
-              inset -2px -2px 5px var(--neu-light);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--electric-blue);
   transition: all 0.2s ease;
 }
 
+#vtype-card-มอเตอร์ไซค์ .icon-box { color: #0284c7; background: #e0f2fe; }
+#vtype-card-รถเก๋ง .icon-box { color: #6366f1; background: #ede9fe; }
+#vtype-card-รถกระบะ .icon-box { color: #ea580c; background: #ffedd5; }
+#vtype-card-รถบรรทุก\/หกล้อ\/สิบล้อ .icon-box { color: #d97706; background: #fef3c7; }
+#vtype-card-รถเพื่อการเกษตร\/แทรกเตอร์ .icon-box { color: #059669; background: #d1fae5; }
+#vtype-card-โฉนดที่ดิน\/อสังหาฯ .icon-box { color: #e11d48; background: #ffe4e6; }
+
 .vehicle-type-btn .label-text {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  color: var(--obsidian-black);
+  color: var(--text-main);
   line-height: 1.2;
 }
 
@@ -239,42 +389,39 @@ body {
 }
 
 .vehicle-type-btn.active {
-  background: linear-gradient(145deg, #e6edf5 0%, #ffedd5 100%);
-  border-color: var(--sunset-orange);
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light),
-              0 0 12px var(--sunset-orange-glow);
-  transform: translateY(1px);
+  background: #fff7ed !important;
+  border-color: var(--chaiyo-orange) !important;
+  box-shadow: 0 8px 20px -2px rgba(234, 88, 12, 0.35) !important;
+  transform: translateY(-2px);
 }
 
 .vehicle-type-btn.active .icon-box {
-  background: linear-gradient(135deg, #ff6b00 0%, #ff8833 100%);
-  color: #ffffff;
-  box-shadow: 2px 2px 6px rgba(255, 107, 0, 0.4);
+  background: var(--orange-gradient) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.4);
 }
 
 .vehicle-type-btn.active .label-text {
-  color: #c2410c;
+  color: #c2410c !important;
 }
 
 .vehicle-type-btn.active .sub-label {
-  color: #ea580c;
-  font-weight: 700;
+  color: #ea580c !important;
+  font-weight: 800;
 }
 
 /* --------------------------------------------------------------------------
-   Custom Neumorphic Status Option Cards (Soft UI Status Grid)
+   Status Option Cards
    -------------------------------------------------------------------------- */
 .status-choice-btn {
-  background: var(--neu-bg);
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
   border-radius: 14px;
-  box-shadow: 4px 4px 10px var(--neu-dark), 
-             -4px -4px 10px var(--neu-light);
-  padding: 0.75rem 0.85rem;
+  box-shadow: var(--shadow-sm);
+  padding: 0.85rem 0.95rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
   text-align: left;
@@ -282,99 +429,91 @@ body {
 
 .status-choice-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 6px 6px 14px var(--neu-dark), 
-             -6px -6px 14px var(--neu-light);
+  box-shadow: var(--shadow-card);
 }
 
 .status-choice-btn .status-icon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: inset 2px 2px 4px var(--neu-shadow-deep), 
-              inset -2px -2px 4px var(--neu-light);
   transition: all 0.2s ease;
 }
 
 .status-choice-btn .title {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 800;
-  color: var(--obsidian-black);
+  color: var(--text-main);
   line-height: 1.25;
 }
 
 .status-choice-btn .desc {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-muted);
   margin-top: 0.1rem;
 }
 
-/* Status 1: นัดหมายเข้าสาขา (Active Blue) */
+/* Status 1: นัดหมายเข้าสาขา (Blue) */
+.status-choice-btn.type-appoint .status-icon { color: #0284c7; background: #e0f2fe; }
 .status-choice-btn.type-appoint.active {
-  background: linear-gradient(145deg, #e6edf5 0%, #e0f2fe 100%);
-  border-color: var(--electric-blue);
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light),
-              0 0 12px var(--electric-blue-glow);
+  background: #f0f9ff;
+  border-color: #0284c7;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.3);
 }
 .status-choice-btn.type-appoint.active .status-icon {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  background: var(--blue-gradient);
   color: #ffffff;
 }
 .status-choice-btn.type-appoint.active .title { color: #0369a1; }
 
-/* Status 2: ติดต่ออีกครั้ง 90 วัน (Active Orange) */
+/* Status 2: ติดต่ออีกครั้ง 90 วัน (Orange) */
+.status-choice-btn.type-callback .status-icon { color: #ea580c; background: #ffedd5; }
 .status-choice-btn.type-callback.active {
-  background: linear-gradient(145deg, #e6edf5 0%, #ffedd5 100%);
-  border-color: var(--sunset-orange);
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light),
-              0 0 12px var(--sunset-orange-glow);
+  background: #fff7ed;
+  border-color: #ea580c;
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.3);
 }
 .status-choice-btn.type-callback.active .status-icon {
-  background: linear-gradient(135deg, #ff6b00 0%, #ff8833 100%);
+  background: var(--orange-gradient);
   color: #ffffff;
 }
 .status-choice-btn.type-callback.active .title { color: #c2410c; }
 
-/* Status 3: อนุมัติ/รับเงินแล้ว (Active Green) */
+/* Status 3: อนุมัติ/รับเงินแล้ว (Green) */
+.status-choice-btn.type-approved .status-icon { color: #059669; background: #d1fae5; }
 .status-choice-btn.type-approved.active {
-  background: linear-gradient(145deg, #e6edf5 0%, #dcfce7 100%);
-  border-color: #16a34a;
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light),
-              0 0 12px rgba(22, 163, 74, 0.3);
+  background: #ecfdf5;
+  border-color: #059669;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.3);
 }
 .status-choice-btn.type-approved.active .status-icon {
-  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  background: var(--green-gradient);
   color: #ffffff;
 }
 .status-choice-btn.type-approved.active .title { color: #15803d; }
 
-/* Status 4: ลูกค้าไม่สนใจ (Active Red) */
+/* Status 4: ลูกค้าไม่สนใจ (Red) */
+.status-choice-btn.type-uninterested .status-icon { color: #dc2626; background: #fee2e2; }
 .status-choice-btn.type-uninterested.active {
-  background: linear-gradient(145deg, #e6edf5 0%, #fee2e2 100%);
+  background: #fff1f2;
   border-color: #dc2626;
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light),
-              0 0 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.25);
 }
 .status-choice-btn.type-uninterested.active .status-icon {
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  background: #dc2626;
   color: #ffffff;
 }
 .status-choice-btn.type-uninterested.active .title { color: #991b1b; }
 
-/* Status 5: ไม่เข้าเงื่อนไข (Active Slate) */
+/* Status 5: ไม่เข้าเงื่อนไข (Slate) */
+.status-choice-btn.type-disqualified .status-icon { color: #475569; background: #f1f5f9; }
 .status-choice-btn.type-disqualified.active {
-  background: linear-gradient(145deg, #e6edf5 0%, #f1f5f9 100%);
+  background: #f8fafc;
   border-color: #475569;
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light);
 }
 .status-choice-btn.type-disqualified.active .status-icon {
   background: #475569;
@@ -383,155 +522,131 @@ body {
 .status-choice-btn.type-disqualified.active .title { color: #1e293b; }
 
 /* --------------------------------------------------------------------------
-   Sunken Inset Inputs (Pure Neumorphism)
+   Inputs
    -------------------------------------------------------------------------- */
 .neu-input {
-  background: var(--neu-bg);
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  box-shadow: inset 3px 3px 7px var(--neu-shadow-deep), 
-              inset -3px -3px 7px var(--neu-light);
-  color: var(--obsidian-black);
-  padding: 0.75rem 1.1rem;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  color: var(--text-main);
+  padding: 0.75rem 1rem;
   outline: none;
-  font-size: 0.925rem;
+  font-size: 0.92rem;
   min-height: 44px;
   transition: all 0.2s ease;
 }
 
 .neu-input:focus {
-  border-color: var(--sunset-orange);
-  box-shadow: inset 4px 4px 8px var(--neu-shadow-deep), 
-              inset -4px -4px 8px var(--neu-light),
-              0 0 0 3px var(--sunset-orange-glow);
+  border-color: var(--chaiyo-orange);
+  box-shadow: 0 0 0 4px rgba(255, 100, 0, 0.18);
 }
 
 /* --------------------------------------------------------------------------
-   Tactile Spring Buttons
+   Buttons
    -------------------------------------------------------------------------- */
 .neu-button {
-  background: var(--neu-bg);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  border-radius: 14px;
-  box-shadow: 4px 4px 12px var(--neu-dark), 
-             -4px -4px 12px var(--neu-light);
-  color: var(--obsidian-black);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 980px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-main);
   font-weight: 700;
   min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.16s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
 }
 
 .neu-button:hover {
+  background: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 6px 6px 15px var(--neu-dark), 
-             -6px -6px 15px var(--neu-light);
+  box-shadow: var(--shadow-card);
+  border-color: #94a3b8;
 }
 
 .neu-button:active, .neu-button.active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: inset 3px 3px 7px var(--neu-dark), 
-              inset -3px -3px 7px var(--neu-light);
-  border-color: #cbd5e1;
+  transform: translateY(0);
 }
 
-/* Sunset Orange CTA Button */
+/* Primary CTA Button */
 .neu-button-orange {
-  background: linear-gradient(135deg, #ff6b00 0%, #ff8833 100%);
+  background: var(--orange-gradient);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 14px;
-  box-shadow: 5px 5px 15px var(--neu-dark), 
-             -5px -5px 15px var(--neu-light),
-             0 0 15px var(--sunset-orange-glow);
+  border: none;
+  border-radius: 980px;
+  box-shadow: var(--shadow-orange);
   font-weight: 800;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.18s ease;
+  cursor: pointer;
 }
 
 .neu-button-orange:hover {
   transform: translateY(-2px);
-  box-shadow: 7px 7px 18px var(--neu-dark), 
-             -7px -7px 18px var(--neu-light),
-             0 0 22px rgba(255, 107, 0, 0.55);
+  box-shadow: 0 12px 28px rgba(234, 88, 12, 0.45);
+  filter: brightness(1.05);
 }
 
-.neu-button-orange:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.45);
-}
-
-/* Electric Blue Secondary Button */
 .neu-button-blue {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  background: var(--blue-gradient);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 14px;
-  box-shadow: 5px 5px 15px var(--neu-dark), 
-             -5px -5px 15px var(--neu-light),
-             0 0 15px var(--electric-blue-glow);
+  border: none;
+  border-radius: 980px;
+  box-shadow: var(--shadow-blue);
   font-weight: 800;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.18s ease;
+  cursor: pointer;
 }
 
 .neu-button-blue:hover {
   transform: translateY(-2px);
-  box-shadow: 7px 7px 18px var(--neu-dark), 
-             -7px -7px 18px var(--neu-light),
-             0 0 20px rgba(2, 132, 199, 0.5);
-}
-
-.neu-button-blue:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.45);
 }
 
 /* --------------------------------------------------------------------------
-   Dynamic Status Badges
+   Status Badges
    -------------------------------------------------------------------------- */
 .status-badge {
-  padding: 0.35rem 0.85rem;
-  border-radius: 9999px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 980px;
   font-size: 0.75rem;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  box-shadow: 2px 2px 5px var(--neu-dark), -2px -2px 5px var(--neu-light);
+  gap: 0.4rem;
 }
 
 .status-appointment {
   background-color: #e0f2fe;
   color: #0369a1;
-  border: 1px solid #bae6fd;
+  border: 1px solid #7dd3fc;
 }
 
 .status-callback {
   background-color: #ffedd5;
   color: #c2410c;
-  border: 1px solid #fed7aa;
+  border: 1px solid #fdba74;
 }
 
 .status-approved {
-  background-color: #f0fdf4;
+  background-color: #dcfce7;
   color: #15803d;
-  border: 1px solid #bbf7d0;
+  border: 1px solid #86efac;
 }
 
 .status-uninterested {
   background-color: #fee2e2;
   color: #991b1b;
-  border: 1px solid #fecaca;
+  border: 1px solid #fca5a5;
 }
 
 .status-disqualified {
@@ -541,26 +656,99 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Mobile Adaptive Card
+   Mobile Adaptive Card & Touch Optimization
    -------------------------------------------------------------------------- */
 @media (max-width: 767px) {
   .mobile-table-card {
-    background: var(--neu-bg);
+    background: #ffffff;
     border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 5px 5px 13px var(--neu-dark), -5px -5px 13px var(--neu-light);
-    padding: 1rem;
-    margin-bottom: 0.9rem;
+    border: 1.5px solid #cbd5e1;
+    box-shadow: var(--shadow-card);
+    padding: 1.15rem;
+    margin-bottom: 0.95rem;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 0.5rem !important;
+  }
+
+  .neu-card {
+    border-radius: 16px;
+    padding: 1rem !important;
+  }
+
+  /* Form & Button Sizing on Mobile */
+  .vehicle-type-btn {
+    padding: 0.75rem 0.4rem;
+    border-radius: 14px;
+  }
+
+  .vehicle-type-btn .icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .vehicle-type-btn .label-text {
+    font-size: 0.76rem;
+  }
+
+  .status-choice-btn {
+    padding: 0.75rem 0.75rem;
+    gap: 0.65rem;
+    border-radius: 12px;
+  }
+
+  .status-choice-btn .status-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Navigation Bar on Mobile */
+  nav.neu-card-sm {
+    border-radius: 14px;
+    padding: 0.25rem;
+  }
+
+  nav .neu-button {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.4rem;
+    min-height: 36px;
+  }
+
+  /* Inputs (iOS Safari no auto-zoom) */
+  .neu-input {
+    font-size: 16px !important;
+    min-height: 46px;
+  }
+
+  /* Horizontal touch scrolling */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .kpi-card {
+    padding: 1rem !important;
+    border-radius: 16px;
   }
 }
 
 /* --------------------------------------------------------------------------
-   Animations
+   Modals & Animations
    -------------------------------------------------------------------------- */
-@keyframes springFadeIn {
+.modal-backdrop-blur {
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  background-color: rgba(15, 23, 42, 0.6);
+}
+
+@keyframes smoothFadeIn {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(8px) scale(0.99);
   }
   100% {
     opacity: 1;
@@ -569,7 +757,7 @@ body {
 }
 
 .animate-fade-in {
-  animation: springFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: smoothFadeIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .pulse-glow-orange {
@@ -577,8 +765,8 @@ body {
 }
 
 @keyframes pulseGlowOrange {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.6); }
-  50% { box-shadow: 0 0 0 7px rgba(255, 107, 0, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 100, 0, 0.6); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 100, 0, 0); }
 }
 
 .pulse-glow-blue {
@@ -586,6 +774,51 @@ body {
 }
 
 @keyframes pulseGlowBlue {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.6); }
-  50% { box-shadow: 0 0 0 7px rgba(2, 132, 199, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.6); }
+  50% { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   Radial Gauge & Delta Badges for Regional Dashboard
+   -------------------------------------------------------------------------- */
+.radial-progress-ring {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.radial-progress-bg {
+  stroke: #f1f5f9;
+}
+
+.radial-progress-bar {
+  transition: stroke-dashoffset 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.delta-pill-up {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.delta-pill-down {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+}
+
+.delta-pill-neutral {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+@keyframes championShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.champion-card {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #ffffff 100%) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.3) !important;
 }
