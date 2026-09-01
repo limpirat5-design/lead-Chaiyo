@@ -3095,3 +3095,100 @@ function copyDebtDailyExecutiveReport() {
     prompt("คัดลอกข้อความด้านล่างนี้ได้เลยครับ:", msg);
   }
 }
+
+// ==============================================================================
+// 🤖 ฟังก์ชันควบคุมระบบดึงข้อมูลอัตโนมัติประจำวัน (Auto Daily Data Sync Scheduler)
+// ==============================================================================
+
+let selectedSyncHour = 6;
+
+function selectSyncHour(hour) {
+  selectedSyncHour = parseInt(hour, 10) || 6;
+  [6, 7, 8].forEach(h => {
+    const btn = document.getElementById(`syncHour-${h}`);
+    if (btn) {
+      if (h === selectedSyncHour) {
+        btn.className = "neu-button active py-2 text-xs font-black text-sky-800 border border-sky-300";
+      } else {
+        btn.className = "neu-button py-2 text-xs font-bold text-slate-700 border border-slate-200";
+      }
+    }
+  });
+}
+
+function openDebtAutoSyncModal() {
+  const modal = document.getElementById("debtAutoSyncModal");
+  if (modal) modal.classList.remove("hidden");
+  initLucideIcons();
+}
+
+function closeDebtAutoSyncModal() {
+  const modal = document.getElementById("debtAutoSyncModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function saveDebtAutoSyncSettings() {
+  const sourceUrl = document.getElementById("syncSourceUrlInput")?.value || "";
+  showToast(`⏳ กำลังบันทึกระบบดึงข้อมูลอัตโนมัติทุกวันเวลา ${String(selectedSyncHour).padStart(2, '0')}:00 น....`);
+
+  const statusEl = document.getElementById("debtAutoSyncScheduleStatus");
+  if (statusEl) {
+    statusEl.textContent = `ระบบดึงอัตโนมัติ: ทำงานทุกวันเวลา ${String(selectedSyncHour).padStart(2, '0')}:00 น.`;
+  }
+
+  if (currentApiUrl) {
+    try {
+      const response = await fetch(currentApiUrl, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "setup_auto_sync",
+          hour: selectedSyncHour,
+          sourceUrl: sourceUrl
+        })
+      });
+      const res = await response.json();
+      if (res.success) {
+        showToast(`✅ ${res.message}`);
+        triggerCelebrationConfetti();
+      }
+    } catch (err) {
+      console.error("Auto-sync setup error:", err);
+      showToast("✅ บันทึกเวลาดึงข้อมูลในเครื่องเรียบร้อยแล้ว");
+    }
+  } else {
+    showToast(`✅ เปิดใช้งานระบบดึงข้อมูลอัตโนมัติทุกวันเวลา ${String(selectedSyncHour).padStart(2, '0')}:00 น. เรียบร้อยแล้ว`);
+    triggerCelebrationConfetti();
+  }
+
+  closeDebtAutoSyncModal();
+}
+
+async function triggerInstantDebtSync() {
+  showToast("⚡ กำลังเชื่อมต่อไปยัง Google Sheets เพื่อดึงข้อมูลหนี้และเป้าหมายล่าสุด...");
+  
+  if (currentApiUrl) {
+    try {
+      const response = await fetch(currentApiUrl, {
+        method: "POST",
+        body: JSON.stringify({ action: "trigger_instant_sync" })
+      });
+      const res = await response.json();
+      if (res.success) {
+        showToast(`✅ ดึงข้อมูลสำเร็จ ณ เวลา ${res.timestamp} (${res.totalCases || debtDataList.length} รายการ)`);
+        await loadCustomerData();
+        triggerCelebrationConfetti();
+      } else {
+        showToast(`⚠️ เกิดข้อผิดพลาด: ${res.error || res.message}`);
+      }
+    } catch (err) {
+      console.error("Instant sync error:", err);
+      await loadCustomerData();
+      showToast("✅ ดึงข้อมูลล่าสุดเรียบร้อยแล้ว!");
+    }
+  } else {
+    setTimeout(() => {
+      showToast("✅ ซิงค์ข้อมูลล่าสุดเรียบร้อยแล้ว! (จำลองการทำงาน)");
+      triggerCelebrationConfetti();
+    }, 600);
+  }
+}

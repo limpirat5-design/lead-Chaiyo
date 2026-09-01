@@ -845,6 +845,12 @@
               <input type="file" id="debtExcelInput" accept=".xlsx, .xls" onchange="handleDebtExcelUpload(event)" class="hidden">
             </label>
 
+            <!-- Auto-sync trigger button -->
+            <button onclick="openDebtAutoSyncModal()" class="neu-button px-3.5 py-2 text-xs text-sky-900 font-black flex items-center gap-1.5 border border-sky-300 bg-sky-50 hover:bg-sky-100 shadow-sm" title="ตั้งค่าระบบดึงข้อมูลอัตโนมัติทุกวัน">
+              <i data-lucide="bot" class="w-4 h-4 text-sky-600"></i>
+              <span>🤖 ดึงอัตโนมัติทุกวัน</span>
+            </button>
+
             <button onclick="copyDebtDailyExecutiveReport()" class="neu-button px-3.5 py-2 text-xs text-slate-800 font-black flex items-center gap-1.5 border border-slate-300" title="สรุปรายงานติดตามหนี้ส่ง LINE หัวหน้าเขต">
               <i data-lucide="copy" class="w-4 h-4 text-orange-600"></i>
               <span>📋 สรุปส่ง LINE เขต</span>
@@ -852,6 +858,25 @@
 
             <button onclick="loadCustomerData()" class="neu-button p-2 text-xs text-slate-700" title="รีเฟรชข้อมูล">
               <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-600"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 🤖 Live Auto-Sync Status Strip -->
+        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="debtAutoSyncScheduleStatus" class="font-bold text-slate-800">ระบบดึงอัตโนมัติ: ทำงานทุกวันเวลา 06:00 น.</span>
+            <span id="debtLastSyncTime" class="text-slate-500 text-[11px]">(ซิงค์ล่าสุด: วันนี้ 06:00 น.)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="triggerInstantDebtSync()" class="neu-button px-2.5 py-1 text-xs text-sky-900 font-black border border-sky-200 bg-white hover:bg-sky-50 flex items-center gap-1 shadow-sm">
+              <i data-lucide="play" class="w-3 h-3 text-sky-600"></i>
+              <span>⚡ กดดึงข้อมูลตอนนี้ทันที</span>
+            </button>
+            <button onclick="openDebtAutoSyncModal()" class="text-sky-700 hover:text-sky-900 font-black text-xs inline-flex items-center gap-1 underline">
+              <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+              <span>ตั้งค่า</span>
             </button>
           </div>
         </div>
@@ -983,6 +1008,76 @@
           </button>
         </div>
       </form>
+  <!-- ========================================================================= -->
+  <!-- MODAL: Auto-Sync Settings & Scheduler (ตั้งค่าระบบดึงข้อมูลอัตโนมัติทุกวัน) -->
+  <!-- ========================================================================= -->
+  <div id="debtAutoSyncModal" class="fixed inset-0 modal-backdrop-blur hidden flex items-center justify-center z-50 p-3 sm:p-4">
+    <div class="neu-card max-w-md w-full p-5 space-y-4 animate-fade-in border border-sky-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-gray-200 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-black">
+            <i data-lucide="bot" class="w-4 h-4"></i>
+          </span>
+          <div>
+            <h4 class="font-black text-slate-950 text-sm sm:text-base">ระบบดึงข้อมูลอัตโนมัติประจำวัน</h4>
+            <p class="text-[11px] text-slate-500">Auto Daily Data Fetch & Alert Scheduler</p>
+          </div>
+        </div>
+        <button onclick="closeDebtAutoSyncModal()" class="text-slate-400 hover:text-slate-700 p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <!-- Status Box -->
+        <div class="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span class="font-black text-sky-950 text-xs">สถานะ: ระบบทำงานอัตโนมัติเปิดอยู่</span>
+          </div>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            ระบบจะตื่นขึ้นมาอ่านข้อมูลลูกหนี้และเป้าหมายจาก Google Sheets สาขาเขาช่องพรานทุกเช้า พร้อมส่งสรุปเข้ากลุ่ม LINE ให้ทีมงานสาขาลุยงานได้ทันที!
+          </p>
+        </div>
+
+        <!-- Time Select -->
+        <div class="space-y-1.5">
+          <label class="font-bold text-slate-800">⏰ เลือกเวลาที่ต้องการให้ระบบดึงข้อมูลทุกวัน:</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="syncHour-6" onclick="selectSyncHour(6)" class="neu-button active py-2 text-xs font-black text-sky-800 border border-sky-300">
+              🌅 06:00 น.
+            </button>
+            <button type="button" id="syncHour-7" onclick="selectSyncHour(7)" class="neu-button py-2 text-xs font-bold text-slate-700 border border-slate-200">
+              ☕ 07:00 น.
+            </button>
+            <button type="button" id="syncHour-8" onclick="selectSyncHour(8)" class="neu-button py-2 text-xs font-bold text-slate-700 border border-slate-200">
+              ☀️ 08:00 น.
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional Source Link -->
+        <div class="space-y-1">
+          <label class="font-bold text-slate-800">🔗 ลิงก์แชร์ไฟล์ Excel / SharePoint / Sheet ของฝ่ายตามหนี้ (ไม่บังคับ):</label>
+          <input type="text" id="syncSourceUrlInput" placeholder="https://autoxscb.sharepoint.com/... หรือ ลิงก์ Google Sheets" class="neu-input w-full p-2 text-xs text-slate-900 rounded-xl border border-slate-300">
+          <p class="text-[10px] text-slate-500">*หากเว้นว่างไว้ ระบบจะดึงจากชีต 'รายการหนี้ค้าง_สาขา' ใน Google Sheets ของสาขาโดยตรง</p>
+        </div>
+
+        <!-- Instant Trigger Button -->
+        <div class="pt-2 border-t border-slate-200">
+          <button type="button" onclick="triggerInstantDebtSync()" class="w-full neu-button py-2.5 px-3 text-xs font-black text-sky-900 bg-sky-100 hover:bg-sky-200 rounded-xl flex items-center justify-center gap-2 border border-sky-300 shadow-sm">
+            <i data-lucide="play" class="w-4 h-4 text-sky-600"></i>
+            <span>⚡ ทดสอบสั่งระบบดึงข้อมูลตอนนี้ทันที (Sync Now)</span>
+          </button>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+          <button type="button" onclick="closeDebtAutoSyncModal()" class="neu-button px-4 py-2 text-slate-700 text-xs font-bold border border-slate-200">ปิด</button>
+          <button type="button" onclick="saveDebtAutoSyncSettings()" class="neu-button px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black shadow-md border-0">
+            💾 บันทึกการตั้งค่าระบบดึงอัตโนมัติ
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

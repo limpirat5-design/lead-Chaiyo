@@ -686,13 +686,15 @@ function doGet(e) {
     
     const regionalChecklist = getRegionalTargetChecklistData(getSpreadsheet());
     const debtList = getDebtCollectionList(getSpreadsheet());
+    const autoSyncStatus = getAutoSyncStatus();
 
     return jsonResponse({
       success: true,
       data: customers.reverse(),
       stats: calculateStats(customers),
       regionalChecklist: regionalChecklist,
-      debtList: debtList
+      debtList: debtList,
+      autoSyncStatus: autoSyncStatus
     });
   } catch (error) {
     return jsonResponse({ success: false, message: error.toString() });
@@ -900,6 +902,20 @@ function doPost(e) {
     // Action 4: นำเข้าข้อมูลลูกหนี้จาก Excel ประจำวัน
     if (action === "import_debt_records") {
       const result = importDebtExcelRecords(payload.records || []);
+      return jsonResponse(result);
+    }
+
+    // Action 5: ตั้งเวลาระบบดึงข้อมูลหนี้อัตโนมัติทุกวัน (Auto-sync Schedule)
+    if (action === "setup_auto_sync") {
+      const hour = payload.hour || 6;
+      const sourceUrl = payload.sourceUrl || "";
+      const result = setupDailyAutoSyncTrigger(hour, sourceUrl);
+      return jsonResponse(result);
+    }
+
+    // Action 6: สั่งดึงข้อมูลทันที (Instant Sync Now)
+    if (action === "trigger_instant_sync") {
+      const result = runDailyDebtSyncJob();
       return jsonResponse(result);
     }
     
@@ -1570,9 +1586,11 @@ const SYNC_CONFIG_KEY = "AUTO_SYNC_DEBT_CONFIG";
 
 /**
  * 1. ฟังก์ชันตั้งเวลานาฬิกาปลุกดึงข้อมูลอัตโนมัติทุกวัน (Time-driven Trigger)
- * สั่งให้ระบบตื่นขึ้นมาทำงานทุกเช้าเวลา 06:00 น. - 07:00 น.
+ * สั่งให้ระบบตื่นขึ้นมาทำงานทุกเช้าตามเวลาที่กำหนด (เช่น 06:00 หรือ 07:00 น.)
  */
-function setupDailyAutoSyncTrigger() {
+function setupDailyAutoSyncTrigger(hour = 6, sourceUrl = "") {
+  const targetHour = parseInt(hour, 10) || 6;
+  
   // ลบ Trigger เดิมที่อาจซ้ำซ้อนออกก่อน
   const triggers = ScriptApp.getProjectTriggers();
   for (let i = 0; i < triggers.length; i++) {
@@ -1581,21 +1599,26 @@ function setupDailyAutoSyncTrigger() {
     }
   }
 
-  // สร้าง Trigger ใหม่ให้รันทุกวันตอนเช้า 6 โมง
+  // สร้าง Trigger ใหม่ให้รันทุกวันตอนเช้าตามชั่วโมงที่เลือก
   ScriptApp.newTrigger("runDailyDebtSyncJob")
     .timeBased()
     .everyDays(1)
-    .atHour(6)
+    .atHour(targetHour)
     .create();
 
   PropertiesService.getScriptProperties().setProperty(SYNC_CONFIG_KEY, JSON.stringify({
     enabled: true,
+    hour: targetHour,
+    sourceUrl: sourceUrl || "",
     lastSetup: new Date().toISOString(),
-    status: "Active (รันทุกวันเวลา 06:00 - 07:00 น.)"
+    status: `🟢 Active (รันอัตโนมัติทุกวันเวลา ${String(targetHour).padStart(2, '0')}:00 น.)`
   }));
 
-  Logger.log("✅ ตั้งเวลาระบบดึงข้อมูลอัตโนมัติทุกวันสำเร็จ!");
-  return { success: true, message: "ตั้งค่าระบบดึงข้อมูลอัตโนมัติทุกวันเวลา 06:00 น. เรียบร้อยแล้ว" };
+  Logger.log(`✅ ตั้งเวลาระบบดึงข้อมูลอัตโนมัติทุกวันเวลา ${targetHour}:00 น. สำเร็จ!`);
+  return { 
+    success: true, 
+    message: `เปิดใช้งานระบบดึงข้อมูลอัตโนมัติทุกวันเวลา ${String(targetHour).padStart(2, '0')}:00 น. เรียบร้อยแล้ว` 
+  };
 }
 
 /**
@@ -1607,19 +1630,99 @@ function runDailyDebtSyncJob() {
     
     // ดึงข้อมูลเป้าหมายและยอดหนี้ล่าสุดจากตาราง
     const regionalData = getRegionalTargetChecklistData();
+    const debtList = getDebtCollectionList();
     const now = new Date();
     const syncTimestamp = Utilities.formatDate(now, "Asia/Bangkok", "dd/MM/yyyy HH:mm:ss");
+
+    // คำนวณสรุปยอดหนี้
+    let totalOverdue = 0;
+    let totalCases = debtList.length;
+    let pendingCount = 0;
+    debtList.forEach(d => {
+      totalOverdue += parseNumericAmount(d.overdueAmount);
+      if (d.status !== "ชำระแล้ว") pendingCount++;
+    });
 
     // บันทึก Log สถานะการซิงค์
     PropertiesService.getScriptProperties().setProperty("LAST_DEBT_SYNC_LOG", JSON.stringify({
       timestamp: syncTimestamp,
       status: "Success",
-      dataCount: regionalData.length,
+      dataCount: totalCases,
+      overdueTotal: totalOverdue,
+      pendingCount: pendingCount,
       branch: "เขาช่องพราน"
     }));
 
+    // ส่งสรุปสั้น ๆ แจ้งเตือนเข้า LINE กลุ่มสาขา (ถ้ามี Token)
+    if (LINE_CHANNEL_ACCESS_TOKEN && totalCases > 0) {
+      const dateThai = `${now.getDate()} ${THAI_MONTHS[now.getMonth()]} พ.ศ. ${now.getFullYear() + 543}`;
+      sendLineFlexPayload(
+        `🌅 [ซิงค์หนี้อัตโนมัติ 06:00 น.] สาขาเขาช่องพราน มีลูกหนี้ต้องติดตาม ${pendingCount} ราย`,
+        {
+          type: "bubble",
+          size: "mega",
+          body: {
+            type: "box",
+            layout: "vertical",
+            paddingAll: "16px",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                backgroundColor: "#881337",
+                cornerRadius: "12px",
+                paddingAll: "10px",
+                contents: [
+                  {
+                    type: "text",
+                    text: "🤖 ซิงค์ข้อมูลหนี้ประจำวันอัตโนมัติ",
+                    color: "#FFFFFF",
+                    weight: "bold",
+                    size: "sm"
+                  }
+                ]
+              },
+              {
+                type: "text",
+                text: `📅 ${dateThai} • สาขาเขาช่องพราน`,
+                size: "xs",
+                color: "#64748B",
+                margin: "md"
+              },
+              {
+                type: "separator",
+                margin: "sm"
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                margin: "md",
+                spacing: "xs",
+                contents: [
+                  {
+                    type: "text",
+                    text: `• ลูกหนี้ที่ต้องติดตาม: ${pendingCount} ราย (จากทั้งหมด ${totalCases} ราย)`,
+                    size: "xs",
+                    weight: "bold",
+                    color: "#0F172A"
+                  },
+                  {
+                    type: "text",
+                    text: `• ยอดหนี้ค้างชำระรวม: ${totalOverdue.toLocaleString()} บาท`,
+                    size: "xs",
+                    weight: "bold",
+                    color: "#E11D48"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      );
+    }
+
     Logger.log("✅ ดึงข้อมูลยอดหนี้และเป้าหมายประจำวันสำเร็จ ณ เวลา: " + syncTimestamp);
-    return { success: true, timestamp: syncTimestamp };
+    return { success: true, timestamp: syncTimestamp, totalCases: totalCases, totalOverdue: totalOverdue };
   } catch (error) {
     Logger.log("❌ เกิดข้อผิดพลาดในการซิงค์: " + error.toString());
     PropertiesService.getScriptProperties().setProperty("LAST_DEBT_SYNC_LOG", JSON.stringify({
