@@ -908,6 +908,29 @@ function sendLineFlexNewCustomerCard(item) {
   const vehicleSummary = [item.brand, item.model, item.year ? `(${item.year})` : ""].filter(Boolean).join(" ");
   const cleanPhone = String(item.phone || '').replace(/[^0-9]/g, '');
 
+  const isMotorInsurance = item.vehicleType === "ประกันภัยรถยนต์";
+  const isFwdInsurance = item.vehicleType === "ประกันชีวิต FWD";
+
+  let headerBgColor = "#00C389"; // สีเขียวสดใสสำหรับสินเชื่อ
+  let badgeTitle = "🚨 ลูกค้าใหม่เข้าสาขา!";
+  let iconPrefix = "🚗";
+  let amountLabel = "วงเงินที่ขอ";
+  let altTitle = "ขอสินเชื่อ";
+
+  if (isMotorInsurance) {
+    headerBgColor = "#0284C7"; // สีฟ้าคราม ประกันภัย
+    badgeTitle = "🛡️ ลูกค้าสนใจประกันภัยรถยนต์!";
+    iconPrefix = "🛡️";
+    amountLabel = "ค่าเบี้ยประกัน";
+    altTitle = "เบี้ยประกันรถ";
+  } else if (isFwdInsurance) {
+    headerBgColor = "#FF6B00"; // สีส้ม FWD
+    badgeTitle = "🧡 ลูกค้าสนใจประกันชีวิต FWD!";
+    iconPrefix = "🧡";
+    amountLabel = "ค่าเบี้ยประกัน";
+    altTitle = "เบี้ยประกันชีวิต FWD";
+  }
+
   const flexBubble = {
     type: "bubble",
     size: "mega",
@@ -917,11 +940,11 @@ function sendLineFlexNewCustomerCard(item) {
       paddingAll: "16px",
       backgroundColor: "#FFFFFF",
       contents: [
-        // Top Curved Badge Container (ตามรูปภาพตัวอย่าง)
+        // Top Curved Badge Container
         {
           type: "box",
           layout: "horizontal",
-          backgroundColor: "#00C389", // สีเขียวสดใส พรีเมียม
+          backgroundColor: headerBgColor,
           cornerRadius: "14px",
           paddingAll: "12px",
           contents: [
@@ -932,7 +955,7 @@ function sendLineFlexNewCustomerCard(item) {
               contents: [
                 {
                   type: "text",
-                  text: "🚨 ลูกค้าใหม่เข้าสาขา!",
+                  text: badgeTitle,
                   color: "#FFFFFF",
                   weight: "bold",
                   size: "md"
@@ -949,7 +972,7 @@ function sendLineFlexNewCustomerCard(item) {
             {
               type: "box",
               layout: "vertical",
-              backgroundColor: "#E11D48",
+              backgroundColor: isFwdInsurance ? "#1E293B" : "#E11D48",
               cornerRadius: "12px",
               paddingStart: "10px",
               paddingEnd: "10px",
@@ -960,7 +983,7 @@ function sendLineFlexNewCustomerCard(item) {
               contents: [
                 {
                   type: "text",
-                  text: "NEW",
+                  text: isFwdInsurance ? "FWD" : "NEW",
                   color: "#FFFFFF",
                   weight: "bold",
                   size: "xs"
@@ -984,14 +1007,14 @@ function sendLineFlexNewCustomerCard(item) {
             },
             {
               type: "text",
-              text: `🚗 ${item.vehicleType} ${vehicleSummary ? '• ' + vehicleSummary : ''}`,
+              text: `${iconPrefix} ${item.vehicleType} ${vehicleSummary ? '• ' + vehicleSummary : ''}`,
               color: "#64748B",
               size: "xs",
               margin: "xs"
             },
             {
               type: "text",
-              text: `⭐ วงเงินที่ขอ: ${Number(item.amount).toLocaleString()} บาท (${item.status})`,
+              text: `⭐ ${amountLabel}: ${Number(item.amount).toLocaleString()} บาท (${item.status})`,
               color: "#D97706",
               weight: "bold",
               size: "xs",
@@ -1012,7 +1035,7 @@ function sendLineFlexNewCustomerCard(item) {
           contents: [
             createFlexIconRow("⏰", "เวลารับเรื่อง", `${time24} น.`),
             createFlexIconRow("📞", "เบอร์โทรติดต่อ", item.phone || "-", "#0284C7", true),
-            ...(item.licensePlate ? [createFlexIconRow("🏷️", "ทะเบียนรถ", item.licensePlate)] : []),
+            ...(item.licensePlate && item.licensePlate !== "-" ? [createFlexIconRow("🏷️", "ทะเบียน/ข้อมูล", item.licensePlate)] : []),
             ...(item.appointmentDate && item.appointmentDate !== "-" ? [createFlexIconRow("📍", "วันเวลานัดหมาย", item.appointmentDate, "#E11D48", true)] : []),
             createFlexIconRow("👨‍💼", "ผู้รับเรื่อง", item.officer || "พนักงานสาขาเขาช่องพราน"),
             ...(item.note ? [createFlexIconRow("📝", "หมายเหตุ", item.note)] : [])
@@ -1064,7 +1087,7 @@ function sendLineFlexNewCustomerCard(item) {
   };
 
   sendLineFlexPayload(
-    `🔔 [ลูกค้าใหม่] ${item.name} (${item.vehicleType}) ขอสินเชื่อ ${Number(item.amount).toLocaleString()} บาท`,
+    `🔔 [ลูกค้าใหม่] ${item.name} (${item.vehicleType}) ${altTitle} ${Number(item.amount).toLocaleString()} บาท`,
     flexBubble
   );
 }

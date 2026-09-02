@@ -374,6 +374,26 @@ nav .neu-button.active i {
 #vtype-card-รถบรรทุก\/หกล้อ\/สิบล้อ .icon-box { color: #d97706; background: #fef3c7; }
 #vtype-card-รถเพื่อการเกษตร\/แทรกเตอร์ .icon-box { color: #059669; background: #d1fae5; }
 #vtype-card-โฉนดที่ดิน\/อสังหาฯ .icon-box { color: #e11d48; background: #ffe4e6; }
+#vtype-card-ประกันภัยรถยนต์ .icon-box { color: #0284c7; background: #e0f2fe; }
+#vtype-card-ประกันชีวิต\ FWD .icon-box { color: #ea580c; background: #ffedd5; }
+
+.badge-insurance-motor {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.badge-insurance-fwd {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border: 1px solid #fed7aa !important;
+}
+
+.badge-loan-general {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
 
 .vehicle-type-btn .label-text {
   font-size: 0.85rem;

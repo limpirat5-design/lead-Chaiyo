@@ -249,6 +249,44 @@ const THAI_VEHICLE_CATALOG = {
       "น.ส. 3 ก (ครุฑเขียว)": ["เนื้อที่เกษตรกรรม", "เนื้อที่อยู่อาศัย"],
       "ที่ดินพร้อมสิ่งปลูกสร้าง": ["บ้านเดี่ยวชั้นเดียว", "บ้านเดี่ยว 2 ชั้น", "ตึกแถว / อาคารพาณิชย์"]
     }
+  },
+  "ประกันภัยรถยนต์": {
+    brands: [
+      "วิริยะประกันภัย",
+      "ทิพยประกันภัย",
+      "กรุงเทพประกันภัย",
+      "คุ้มภัยโตเกียวมารีน",
+      "ธนชาตประกันภัย",
+      "เมืองไทยประกันภัย",
+      "เออร์โก (ERGO)",
+      "แอกซ่าประกันภัย",
+      "ชับบ์สามัคคีประกันภัย",
+      "บริษัทประกันภัยอื่นๆ"
+    ],
+    models: {
+      "วิริยะประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 (ซ่อมศูนย์/ห้าง)", "ประกันชั้น 1 (ซ่อมเคาะ/อู่)", "ประกันชั้น 2+ (ทูพลัส)", "ประกันชั้น 3+ (ทรีพลัส)", "ประกันชั้น 3 (สามธรรมดา)"],
+      "ทิพยประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 TIP Shock Price", "ประกันชั้น 1 ซ่อมศูนย์/ห้าง", "ประกันชั้น 2+ สุดคุ้ม (คุ้มครองรถหาย/ไฟไหม้)", "ประกันชั้น 3+ เซฟสุดคุ้ม", "ประกันชั้น 3 (สามธรรมดา)"],
+      "กรุงเทพประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 อุ่นใจขับขี่", "ประกันชั้น 2+ สุดคุ้ม", "ประกันชั้น 3+ ทรีพลัส", "ประกันชั้น 3 คุ้มครองบุคคลภายนอก"],
+      "คุ้มภัยโตเกียวมารีน": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 โตเกียวแคร์", "ประกันชั้น 2+ สบายใจ", "ประกันชั้น 3+ ประหยัด", "ประกันชั้น 3 คุ้มภัย"],
+      "ธนชาตประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 Single Rate", "ประกันชั้น 2+ จัดเต็ม", "ประกันชั้น 3+ จัดเต็ม", "ประกันชั้น 3 สบายกระเป๋า"],
+      "เมืองไทยประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 ยิ้มได้เมื่อภัยมา", "ประกันชั้น 2+ เมืองไทยโดนใจ", "ประกันชั้น 3+ เมืองไทยเซฟ", "ประกันชั้น 3 ประหยัด"],
+      "เออร์โก (ERGO)": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 ERGO Motor", "ประกันชั้น 2+ ERGO Save", "ประกันชั้น 3+ ERGO Protect", "ประกันชั้น 3 ERGO Standard"],
+      "แอกซ่าประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 AXA SmartDrive", "ประกันชั้น 2+ สุดคุ้ม", "ประกันชั้น 3+ ประหยัด"],
+      "ชับบ์สามัคคีประกันภัย": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1 ชับบ์ออโต้", "ประกันชั้น 2+", "ประกันชั้น 3+"],
+      "บริษัทประกันภัยอื่นๆ": ["พ.ร.บ. (ภาคบังคับ)", "ประกันชั้น 1", "ประกันชั้น 2+", "ประกันชั้น 3+", "ประกันชั้น 3"]
+    }
+  },
+  "ประกันชีวิต FWD": {
+    brands: ["FWD ประกันชีวิต (เงินไชโย)"],
+    models: {
+      "FWD ประกันชีวิต (เงินไชโย)": [
+        "ไชโย แคร์มีคืน",
+        "คุ้มครอง 2 ชั้น",
+        "ไชโย 777",
+        "มรดก ยั่งยืน",
+        "แผนอื่นๆ ของ FWD"
+      ]
+    }
   }
 };
 
@@ -302,6 +340,57 @@ let customerDataList = [
     appointmentDate: "-",
     officer: "พนักงานสาขาเขาช่องพราน",
     note: "ปิดการขายเรียบร้อย อนุมัติและโอนเงินเข้าบัญชีลูกค้าแล้ว"
+  },
+  {
+    id: "CY-25690830-04",
+    createdAt: `${todayStr} 14:20`,
+    name: "นางสาววิภา ทิพยวานิช",
+    phone: "086-333-7788",
+    vehicleType: "ประกันภัยรถยนต์",
+    brand: "ทิพยประกันภัย",
+    model: "ประกันชั้น 1 TIP Shock Price",
+    year: "2565 (2022)",
+    licensePlate: "2กบ 8899 ราชบุรี",
+    sumInsured: 450000,
+    amount: 16500,
+    status: "อนุมัติ/รับเงินแล้ว",
+    appointmentDate: "-",
+    officer: "พนักงานสาขาเขาช่องพราน",
+    note: "ลูกค้าติดต่อขอต่อประกันรถยนต์ชั้น 1 ซ่อมห้าง ออกกรมธรรม์และชำระเบี้ยเรียบร้อยแล้ว"
+  },
+  {
+    id: "CY-25690830-05",
+    createdAt: `${todayStr} 15:10`,
+    name: "นายปรีชา มั่นคง",
+    phone: "095-888-9900",
+    vehicleType: "ประกันชีวิต FWD",
+    brand: "FWD ประกันชีวิต (เงินไชโย)",
+    model: "ไชโย แคร์มีคืน",
+    year: "คุ้มครอง 1 ปี (ต่ออายุทุกปี)",
+    licensePlate: "-",
+    sumInsured: 300000,
+    amount: 6500,
+    status: "นัดหมายเข้าสาขา",
+    appointmentDate: `${todayStr} 16:30`,
+    officer: "พนักงานสาขาเขาช่องพราน",
+    note: "ลูกค้าสนใจแผน ไชโย แคร์มีคืน (มีเงินคืนเมื่อครบสัญญา) นัดเข้ามาทำสัญญาและชำระเบี้ยช่วง 16:30 น."
+  },
+  {
+    id: "CY-25690830-06",
+    createdAt: `${todayStr} 16:00`,
+    name: "นางวรรณา สุขใจ",
+    phone: "082-999-1122",
+    vehicleType: "ประกันชีวิต FWD",
+    brand: "FWD ประกันชีวิต (เงินไชโย)",
+    model: "ไชโย 777",
+    year: "คุ้มครอง 7 ปี",
+    licensePlate: "-",
+    sumInsured: 200000,
+    amount: 7770,
+    status: "อนุมัติ/รับเงินแล้ว",
+    appointmentDate: "-",
+    officer: "พนักงานสาขาเขาช่องพราน",
+    note: "ปิดการขายแผน ไชโย 777 ลูกค้าชำระเบี้ยและออกกรมธรรม์เรียบร้อยแล้ว"
   }
 ];
 
@@ -364,7 +453,7 @@ function triggerCelebrationConfetti() {
 }
 
 /**
- * ฟังก์ชันเลือกประเภทหลักประกันผ่านการ์ด Neumorphic
+ * ฟังก์ชันเลือกประเภทผลิตภัณฑ์ / หลักประกัน ผ่านการ์ด Neumorphic
  */
 function selectVehicleType(type) {
   const hiddenInput = document.getElementById("custVehicleType");
@@ -376,7 +465,9 @@ function selectVehicleType(type) {
     "รถกระบะ",
     "รถบรรทุก/หกล้อ/สิบล้อ",
     "รถเพื่อการเกษตร/แทรกเตอร์",
-    "โฉนดที่ดิน/อสังหาฯ"
+    "โฉนดที่ดิน/อสังหาฯ",
+    "ประกันภัยรถยนต์",
+    "ประกันชีวิต FWD"
   ];
 
   vehicleTypes.forEach(t => {
@@ -389,6 +480,55 @@ function selectVehicleType(type) {
       }
     }
   });
+
+  // Dynamic Label & Form Field Adjustments
+  const lblBrand = document.getElementById("lblBrand");
+  const lblModel = document.getElementById("lblModel");
+  const lblYear = document.getElementById("lblYear");
+  const lblLicensePlate = document.getElementById("lblLicensePlate");
+  const lblAmount = document.getElementById("lblAmount");
+  const divSumInsured = document.getElementById("divSumInsured");
+  const btnCalcQuick = document.getElementById("btnCalcQuick");
+  const custYearSelect = document.getElementById("custYear");
+
+  if (type === "ประกันภัยรถยนต์") {
+    if (lblBrand) lblBrand.innerHTML = `บริษัทประกันภัย <span class="text-orange-600">*</span>`;
+    if (lblModel) lblModel.innerHTML = `แผนประกัน / ชั้นประกัน <span class="text-orange-600">*</span>`;
+    if (lblYear) lblYear.textContent = `ปีที่จดทะเบียนรถ (ถ้ามี)`;
+    if (lblLicensePlate) lblLicensePlate.textContent = `เลขทะเบียนรถ และ จังหวัด (ถ้ามี)`;
+    if (lblAmount) lblAmount.innerHTML = `ค่าเบี้ยประกันภัย (บาท) <span class="text-orange-600">*</span>`;
+    if (divSumInsured) divSumInsured.classList.remove("hidden");
+    if (btnCalcQuick) btnCalcQuick.classList.add("hidden");
+    populateYearSelect();
+  } else if (type === "ประกันชีวิต FWD") {
+    if (lblBrand) lblBrand.innerHTML = `บริษัทประกันชีวิต <span class="text-orange-600">*</span>`;
+    if (lblModel) lblModel.innerHTML = `แผนประกัน FWD ที่สนใจ <span class="text-orange-600">*</span>`;
+    if (lblYear) lblYear.textContent = `ระยะเวลาคุ้มครอง / สัญญา`;
+    if (lblLicensePlate) lblLicensePlate.textContent = `เลขบัตร ปชช. / ข้อมูลเสริม (ถ้ามี)`;
+    if (lblAmount) lblAmount.innerHTML = `ค่าเบี้ยประกันภัย (บาท/ปี) <span class="text-orange-600">*</span>`;
+    if (divSumInsured) divSumInsured.classList.remove("hidden");
+    if (btnCalcQuick) btnCalcQuick.classList.add("hidden");
+
+    if (custYearSelect) {
+      custYearSelect.innerHTML = `
+        <option value="1 ปี (ต่ออายุทุกปี)">1 ปี (ต่ออายุรายปี)</option>
+        <option value="3 ปี">3 ปี</option>
+        <option value="5 ปี">5 ปี</option>
+        <option value="10 ปี">10 ปี</option>
+        <option value="ตลอดชีพ / ถึงอายุ 99 ปี">ตลอดชีพ (ถึงอายุ 99 ปี)</option>
+      `;
+    }
+  } else {
+    // สินเชื่อทั่วไป
+    if (lblBrand) lblBrand.innerHTML = `ยี่ห้อ / แบรนด์ <span class="text-orange-600">*</span>`;
+    if (lblModel) lblModel.innerHTML = `รุ่น / แบบรถ <span class="text-orange-600">*</span>`;
+    if (lblYear) lblYear.textContent = `ปีที่จดทะเบียน (ปีรถ)`;
+    if (lblLicensePlate) lblLicensePlate.textContent = `เลขทะเบียนรถ และ จังหวัด (ถ้ามี)`;
+    if (lblAmount) lblAmount.innerHTML = `วงเงินที่ขอกู้ (บาท) <span class="text-orange-600">*</span>`;
+    if (divSumInsured) divSumInsured.classList.add("hidden");
+    if (btnCalcQuick) btnCalcQuick.classList.remove("hidden");
+    populateYearSelect();
+  }
 
   handleVehicleTypeChange(type);
   initLucideIcons();
@@ -486,6 +626,12 @@ function handleVehicleTypeChange(type) {
   if (!category || !brandList) return;
 
   brandList.innerHTML = category.brands.map(b => `<option value="${b}">${b}</option>`).join("");
+
+  // ถ้าเป็นประกันชีวิต FWD มีแบรนด์เดียว เลือกให้อัตโนมัติและแสดงรายการแผนทันที
+  if (type === "ประกันชีวิต FWD" && category.brands.length === 1) {
+    if (custBrand) custBrand.value = category.brands[0];
+    handleBrandChange(category.brands[0]);
+  }
 }
 
 function handleBrandChange(brand) {
@@ -747,6 +893,7 @@ async function handleFormSubmit(event) {
 
   const selectedStatus = document.getElementById("custStatus")?.value || "นัดหมายเข้าสาขา";
   const appointmentDate = document.getElementById("custAppointmentDate")?.value || "-";
+  const sumInsuredVal = parseNumericAmount(document.getElementById("custSumInsured")?.value);
 
   const newCustomer = {
     action: "create",
@@ -758,6 +905,7 @@ async function handleFormSubmit(event) {
     year: document.getElementById("custYear").value,
     licensePlate: document.getElementById("custLicensePlate").value.trim(),
     amount: parseNumericAmount(document.getElementById("custAmount").value),
+    sumInsured: sumInsuredVal > 0 ? sumInsuredVal : 0,
     status: selectedStatus,
     appointmentDate: (selectedStatus === "นัดหมายเข้าสาขา" || selectedStatus.includes("ติดต่ออีกครั้ง")) ? appointmentDate.replace("T", " ") : "-",
     officer: document.getElementById("custOfficer").value.trim() || "พนักงานสาขาเขาช่องพราน",
@@ -779,6 +927,8 @@ async function handleFormSubmit(event) {
       
       showToast("✅ บันทึกข้อมูลและแจ้งเตือน LINE เรียบร้อยแล้ว!");
       document.getElementById("customerForm").reset();
+      const sumInput = document.getElementById("custSumInsured");
+      if (sumInput) sumInput.value = "";
       selectVehicleType("มอเตอร์ไซค์");
       selectCaseStatus("นัดหมายเข้าสาขา");
       await loadCustomerData();
@@ -798,6 +948,8 @@ async function handleFormSubmit(event) {
     });
     showToast("✅ บันทึกข้อมูลสำเร็จ (โหมดจำลอง)!");
     document.getElementById("customerForm").reset();
+    const sumInput = document.getElementById("custSumInsured");
+    if (sumInput) sumInput.value = "";
     selectVehicleType("มอเตอร์ไซค์");
     selectCaseStatus("นัดหมายเข้าสาขา");
     filterCustomerTable();
@@ -837,17 +989,31 @@ function renderCustomerTable(data) {
     mobileContainer.innerHTML = data.map((item, idx) => {
       const statusClass = getStatusBadgeClass(item.status);
       const hasAppoint = item.appointmentDate && item.appointmentDate !== "-";
+      const isMotorInsurance = item.vehicleType === "ประกันภัยรถยนต์";
+      const isFwdInsurance = item.vehicleType === "ประกันชีวิต FWD";
+      const isAnyInsurance = isMotorInsurance || isFwdInsurance;
+
+      let typeBadgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold badge-loan-general">🚗 ${escapeHtml(item.vehicleType)}</span>`;
+      if (isMotorInsurance) {
+        typeBadgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black badge-insurance-motor">🛡️ ประกันภัยรถยนต์</span>`;
+      } else if (isFwdInsurance) {
+        typeBadgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black badge-insurance-fwd">🧡 ประกันชีวิต FWD</span>`;
+      }
+
       const vehicleDetailStr = [item.brand, item.model, item.year ? `(${item.year})` : ""].filter(Boolean).join(" ");
       const formattedCreated = formatThaiDateTime24hr(item.createdAt);
       const formattedAppoint = formatThaiDateTime24hr(item.appointmentDate);
+      const sumInsuredAmt = parseNumericAmount(item.sumInsured);
 
       return `
         <div class="mobile-table-card space-y-3 animate-fade-in" style="animation-delay: ${idx * 0.04}s">
           <div class="flex justify-between items-start gap-2">
             <div>
               <div class="font-black text-slate-950 text-sm sm:text-base">${escapeHtml(item.name)}</div>
-              <div class="text-xs font-bold text-sky-950">${escapeHtml(item.vehicleType)} ${escapeHtml(vehicleDetailStr)}</div>
-              ${item.licensePlate ? `<div class="text-[11px] text-slate-600 font-mono font-bold">${escapeHtml(item.licensePlate)}</div>` : ''}
+              <div class="mt-1">${typeBadgeHtml}</div>
+              <div class="text-xs font-bold text-slate-800 mt-1">${escapeHtml(vehicleDetailStr)}</div>
+              ${sumInsuredAmt > 0 ? `<div class="text-[11px] text-sky-800 font-extrabold">🛡️ ทุนประกัน: ${sumInsuredAmt.toLocaleString()} บาท</div>` : ''}
+              ${item.licensePlate && item.licensePlate !== "-" ? `<div class="text-[11px] text-slate-600 font-mono font-bold">${escapeHtml(item.licensePlate)}</div>` : ''}
             </div>
             <div class="text-right flex-shrink-0">
               <span class="status-badge ${statusClass} text-[11px]">
@@ -855,6 +1021,9 @@ function renderCustomerTable(data) {
               </span>
               <div class="font-black text-orange-600 text-sm mt-1">
                 ${parseNumericAmount(item.amount).toLocaleString()} บาท
+              </div>
+              <div class="text-[10px] font-bold text-slate-500">
+                ${isAnyInsurance ? '(ค่าเบี้ยประกัน)' : '(วงเงินขอสินเชื่อ)'}
               </div>
             </div>
           </div>
@@ -896,9 +1065,21 @@ function renderCustomerTable(data) {
     tbody.innerHTML = data.map((item, idx) => {
       const statusClass = getStatusBadgeClass(item.status);
       const hasAppoint = item.appointmentDate && item.appointmentDate !== "-";
+      const isMotorInsurance = item.vehicleType === "ประกันภัยรถยนต์";
+      const isFwdInsurance = item.vehicleType === "ประกันชีวิต FWD";
+      const isAnyInsurance = isMotorInsurance || isFwdInsurance;
+
+      let typeBadgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold badge-loan-general">🚗 ${escapeHtml(item.vehicleType)}</span>`;
+      if (isMotorInsurance) {
+        typeBadgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black badge-insurance-motor">🛡️ ประกันภัยรถยนต์</span>`;
+      } else if (isFwdInsurance) {
+        typeBadgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black badge-insurance-fwd">🧡 ประกันชีวิต FWD</span>`;
+      }
+
       const vehicleDetailStr = [item.brand, item.model, item.year ? `(${item.year})` : ""].filter(Boolean).join(" ");
       const formattedCreated = formatThaiDateShort24hr(item.createdAt);
       const formattedAppoint = formatThaiDateTime24hr(item.appointmentDate);
+      const sumInsuredAmt = parseNumericAmount(item.sumInsured);
 
       return `
         <tr class="hover:bg-gray-100 transition-all table-row-animate" style="animation-delay: ${idx * 0.03}s">
@@ -916,12 +1097,16 @@ function renderCustomerTable(data) {
             </div>
           </td>
           <td class="py-3 px-3 text-slate-800">
-            <div class="font-black text-sky-950">${escapeHtml(item.vehicleType)}</div>
-            <div class="text-xs font-bold text-slate-700">${escapeHtml(vehicleDetailStr || "-")}</div>
-            ${item.licensePlate ? `<div class="text-[11px] text-slate-600 font-mono font-bold">${escapeHtml(item.licensePlate)}</div>` : ''}
+            <div>${typeBadgeHtml}</div>
+            <div class="text-xs font-bold text-slate-800 mt-1">${escapeHtml(vehicleDetailStr || "-")}</div>
+            ${sumInsuredAmt > 0 ? `<div class="text-[11px] text-sky-800 font-extrabold">🛡️ ทุนประกัน: ${sumInsuredAmt.toLocaleString()} บาท</div>` : ''}
+            ${item.licensePlate && item.licensePlate !== "-" ? `<div class="text-[11px] text-slate-600 font-mono font-bold">${escapeHtml(item.licensePlate)}</div>` : ''}
           </td>
           <td class="py-3 px-3 text-right font-black text-orange-600 whitespace-nowrap text-sm">
-            ${parseNumericAmount(item.amount).toLocaleString()} บาท
+            <div>${parseNumericAmount(item.amount).toLocaleString()} บาท</div>
+            <div class="text-[10px] font-bold text-slate-500">
+              ${isAnyInsurance ? '(ค่าเบี้ยประกัน)' : '(วงเงินขอสินเชื่อ)'}
+            </div>
           </td>
           <td class="py-3 px-3 text-center">
             <div>
@@ -958,6 +1143,52 @@ function renderCustomerTable(data) {
   initLucideIcons();
 }
 
+let activeQuickType = "";
+
+/**
+ * ฟังก์ชันเลือกตัวกรองด่วนผ่านปุ่ม Pills
+ */
+function setQuickTypeFilter(typeVal) {
+  activeQuickType = typeVal;
+  const tEl = document.getElementById("typeFilter");
+  if (tEl) {
+    if (typeVal === "loan") {
+      tEl.value = "";
+    } else {
+      tEl.value = typeVal;
+    }
+  }
+
+  // อัปเดตสไตล์ปุ่ม Quick Pills
+  const pills = [
+    { id: "qfilter-all", val: "" },
+    { id: "qfilter-loan", val: "loan" },
+    { id: "qfilter-motor", val: "ประกันภัยรถยนต์" },
+    { id: "qfilter-fwd", val: "ประกันชีวิต FWD" }
+  ];
+
+  pills.forEach(p => {
+    const btn = document.getElementById(p.id);
+    if (btn) {
+      if (p.val === typeVal) {
+        btn.className = "px-2.5 py-1 rounded-lg font-black bg-slate-900 text-white shadow-sm transition-all flex items-center gap-1";
+      } else {
+        if (p.val === "loan") {
+          btn.className = "px-2.5 py-1 rounded-lg font-bold bg-gray-100 text-slate-700 hover:bg-gray-200 border border-gray-300 transition-all flex items-center gap-1";
+        } else if (p.val === "ประกันภัยรถยนต์") {
+          btn.className = "px-2.5 py-1 rounded-lg font-bold bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100 transition-all flex items-center gap-1";
+        } else if (p.val === "ประกันชีวิต FWD") {
+          btn.className = "px-2.5 py-1 rounded-lg font-bold bg-orange-50 text-orange-800 border border-orange-200 hover:bg-orange-100 transition-all flex items-center gap-1";
+        } else {
+          btn.className = "px-2.5 py-1 rounded-lg font-bold bg-gray-100 text-slate-700 hover:bg-gray-200 border border-gray-300 transition-all flex items-center gap-1";
+        }
+      }
+    }
+  });
+
+  filterCustomerTable();
+}
+
 /**
  * ค้นหาและกรอง (ซ่อนเคสไม่สนใจและไม่เข้าเงื่อนไขเป็นค่าเริ่มต้น)
  */
@@ -971,7 +1202,7 @@ function filterCustomerTable() {
   const type = tEl ? tEl.value : "";
 
   const filtered = customerDataList.filter(item => {
-    const fullSearchStr = `${item.name || ''} ${item.phone || ''} ${item.brand || ''} ${item.model || ''} ${item.licensePlate || ''} ${item.officer || ''}`.toLowerCase();
+    const fullSearchStr = `${item.name || ''} ${item.phone || ''} ${item.vehicleType || ''} ${item.brand || ''} ${item.model || ''} ${item.licensePlate || ''} ${item.officer || ''}`.toLowerCase();
     const matchQuery = !query || fullSearchStr.includes(query);
 
     const norm = normalizeStatus(item.status);
@@ -986,7 +1217,17 @@ function filterCustomerTable() {
       matchStatus = (norm === normalizeStatus(status) || item.status === status);
     }
 
-    const matchType = !type || item.vehicleType === type;
+    // กรองประเภทผลิตภัณฑ์ / หลักประกัน
+    let matchType = true;
+    if (activeQuickType === "loan") {
+      matchType = (item.vehicleType !== "ประกันภัยรถยนต์" && item.vehicleType !== "ประกันชีวิต FWD");
+    } else if (activeQuickType === "ประกันภัยรถยนต์" || type === "ประกันภัยรถยนต์") {
+      matchType = (item.vehicleType === "ประกันภัยรถยนต์");
+    } else if (activeQuickType === "ประกันชีวิต FWD" || type === "ประกันชีวิต FWD") {
+      matchType = (item.vehicleType === "ประกันชีวิต FWD");
+    } else if (type) {
+      matchType = (item.vehicleType === type);
+    }
 
     return matchQuery && matchStatus && matchType;
   });
@@ -1119,13 +1360,25 @@ function renderDashboard() {
   let totalAmount = 0;
   let approvedAmount = 0;
   let approvedCount = 0;
+
+  // ตัวแปรสถิติแยกเฉพาะงานประกัน
+  let motorCount = 0;
+  let motorApprovedCount = 0;
+  let motorAmount = 0;
+
+  let fwdCount = 0;
+  let fwdApprovedCount = 0;
+  let fwdAmount = 0;
+
   let vehicleMap = {
     "มอเตอร์ไซค์": 0,
     "รถเก๋ง": 0,
     "รถกระบะ": 0,
     "รถบรรทุก/หกล้อ/สิบล้อ": 0,
     "รถเพื่อการเกษตร/แทรกเตอร์": 0,
-    "โฉนดที่ดิน/อสังหาฯ": 0
+    "โฉนดที่ดิน/อสังหาฯ": 0,
+    "ประกันภัยรถยนต์": 0,
+    "ประกันชีวิต FWD": 0
   };
   let statusMap = {
     "นัดหมายเข้าสาขา": 0,
@@ -1140,13 +1393,24 @@ function renderDashboard() {
     totalAmount += amt;
 
     const normStatus = normalizeStatus(item.status);
+    const isApp = isApprovedStatus(item.status);
 
-    if (isApprovedStatus(item.status)) {
+    if (isApp) {
       approvedAmount += amt;
       approvedCount++;
       statusMap["อนุมัติ/รับเงินแล้ว"] = (statusMap["อนุมัติ/รับเงินแล้ว"] || 0) + 1;
     } else {
       statusMap[normStatus] = (statusMap[normStatus] || 0) + 1;
+    }
+
+    if (item.vehicleType === "ประกันภัยรถยนต์") {
+      motorCount++;
+      motorAmount += amt;
+      if (isApp) motorApprovedCount++;
+    } else if (item.vehicleType === "ประกันชีวิต FWD") {
+      fwdCount++;
+      fwdAmount += amt;
+      if (isApp) fwdApprovedCount++;
     }
 
     vehicleMap[item.vehicleType] = (vehicleMap[item.vehicleType] || 0) + 1;
@@ -1165,6 +1429,21 @@ function renderDashboard() {
   if (appCountEl) appCountEl.textContent = approvedCount.toLocaleString();
   if (winRateEl) winRateEl.textContent = `${winRate}%`;
 
+  // อัปเดต Insurance Showcase Cards
+  const motorCountEl = document.getElementById("kpiMotorCount");
+  const motorApprovedEl = document.getElementById("kpiMotorApprovedCount");
+  const motorAmountEl = document.getElementById("kpiMotorAmount");
+  if (motorCountEl) motorCountEl.textContent = motorCount.toLocaleString();
+  if (motorApprovedEl) motorApprovedEl.textContent = motorApprovedCount.toLocaleString();
+  if (motorAmountEl) animateCounter("kpiMotorAmount", motorAmount);
+
+  const fwdCountEl = document.getElementById("kpiFwdCount");
+  const fwdApprovedEl = document.getElementById("kpiFwdApprovedCount");
+  const fwdAmountEl = document.getElementById("kpiFwdAmount");
+  if (fwdCountEl) fwdCountEl.textContent = fwdCount.toLocaleString();
+  if (fwdApprovedEl) fwdApprovedEl.textContent = fwdApprovedCount.toLocaleString();
+  if (fwdAmountEl) animateCounter("kpiFwdAmount", fwdAmount);
+
   // Dynamic Progress Bars
   const approvedProgress = document.getElementById("kpiApprovedProgress");
   if (approvedProgress) approvedProgress.style.width = `${Math.min(approvedPercentOfAmt, 100)}%`;
@@ -1180,12 +1459,12 @@ function renderDashboard() {
   if (vehicleStatsContainer) {
     const activeVehicles = Object.keys(vehicleMap).filter(k => vehicleMap[k] > 0);
     if (activeVehicles.length === 0) {
-      vehicleStatsContainer.innerHTML = `<div class="col-span-3 text-xs text-slate-500 font-bold py-1">ยังไม่มีข้อมูลหลักประกันในช่วงเวลานี้</div>`;
+      vehicleStatsContainer.innerHTML = `<div class="col-span-3 text-xs text-slate-500 font-bold py-1">ยังไม่มีข้อมูลหลักประกันหรือประกันภัยในช่วงเวลานี้</div>`;
     } else {
       vehicleStatsContainer.innerHTML = activeVehicles.map(k => `
         <div class="neu-card-sm p-2 rounded-xl bg-gray-100/80">
           <div class="text-[11px] font-bold text-slate-700 truncate">${k.split('/')[0]}</div>
-          <div class="text-sm font-black text-sky-950">${vehicleMap[k]} <span class="text-[10px] text-slate-600 font-normal">คัน</span></div>
+          <div class="text-sm font-black text-sky-950">${vehicleMap[k]} <span class="text-[10px] text-slate-600 font-normal">เคส</span></div>
         </div>
       `).join("");
     }
@@ -1219,13 +1498,25 @@ function renderDashboard() {
     const vehicleLabels = Object.keys(vehicleMap).filter(k => vehicleMap[k] > 0);
     const vehicleValues = vehicleLabels.map(k => vehicleMap[k]);
 
+    const paletteMap = {
+      "มอเตอร์ไซค์": "#0284c7",
+      "รถเก๋ง": "#6366f1",
+      "รถกระบะ": "#ea580c",
+      "รถบรรทุก/หกล้อ/สิบล้อ": "#d97706",
+      "รถเพื่อการเกษตร/แทรกเตอร์": "#059669",
+      "โฉนดที่ดิน/อสังหาฯ": "#e11d48",
+      "ประกันภัยรถยนต์": "#38bdf8",
+      "ประกันชีวิต FWD": "#f97316"
+    };
+    const chartColors = vehicleLabels.map(lbl => paletteMap[lbl] || "#64748b");
+
     vehicleChartInstance = new Chart(ctxVehicle, {
       type: "doughnut",
       data: {
         labels: vehicleLabels.length ? vehicleLabels : ["ไม่มีข้อมูล"],
         datasets: [{
           data: vehicleValues.length ? vehicleValues : [1],
-          backgroundColor: vehicleValues.length ? ["#ff6400", "#0284c7", "#6366f1", "#10b981", "#d97706", "#e11d48"] : ["#cbd5e1"],
+          backgroundColor: vehicleValues.length ? chartColors : ["#cbd5e1"],
           borderWidth: 3,
           borderColor: "#ffffff",
           hoverOffset: 6
@@ -1237,7 +1528,7 @@ function renderDashboard() {
         cutout: "64%",
         animation: { duration: 600, easing: 'easeOutQuart' },
         plugins: {
-          legend: { position: "bottom", labels: { font: { family: "Prompt", weight: "bold", size: 11 }, padding: 12 } }
+          legend: { position: "bottom", labels: { font: { family: "Prompt", weight: "bold", size: 11 }, padding: 10 } }
         }
       }
     });
@@ -1338,6 +1629,20 @@ function generateExecutiveReport(period) {
   let totalAmount = 0;
   let approvedAmount = 0;
   let approvedCount = 0;
+  
+  let motorCases = 0;
+  let motorPrem = 0;
+  let motorApproved = 0;
+
+  let fwdCases = 0;
+  let fwdPrem = 0;
+  let fwdApproved = 0;
+
+  let loanCases = 0;
+  let loanAmount = 0;
+  let loanApproved = 0;
+  let loanApprovedAmount = 0;
+
   let vehicleMap = {};
   let statusMap = {};
 
@@ -1346,7 +1651,9 @@ function generateExecutiveReport(period) {
     totalAmount += amt;
 
     const normStatus = normalizeStatus(item.status);
-    if (isApprovedStatus(item.status)) {
+    const isApp = isApprovedStatus(item.status);
+
+    if (isApp) {
       approvedAmount += amt;
       approvedCount++;
       statusMap["อนุมัติ/รับเงินแล้ว"] = (statusMap["อนุมัติ/รับเงินแล้ว"] || 0) + 1;
@@ -1354,7 +1661,23 @@ function generateExecutiveReport(period) {
       statusMap[normStatus] = (statusMap[normStatus] || 0) + 1;
     }
 
-    vehicleMap[item.vehicleType] = (vehicleMap[item.vehicleType] || 0) + 1;
+    if (item.vehicleType === "ประกันภัยรถยนต์") {
+      motorCases++;
+      motorPrem += amt;
+      if (isApp) motorApproved++;
+    } else if (item.vehicleType === "ประกันชีวิต FWD") {
+      fwdCases++;
+      fwdPrem += amt;
+      if (isApp) fwdApproved++;
+    } else {
+      loanCases++;
+      loanAmount += amt;
+      if (isApp) {
+        loanApproved++;
+        loanApprovedAmount += amt;
+      }
+      vehicleMap[item.vehicleType] = (vehicleMap[item.vehicleType] || 0) + 1;
+    }
   });
 
   const winRate = totalCases > 0 ? Math.round((approvedCount / totalCases) * 100) : 0;
@@ -1367,20 +1690,32 @@ function generateExecutiveReport(period) {
   const timeStamp24 = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
 
   const report = 
-`📊 [รายงานผลการดำเนินงานสินเชื่อ] เงินไชโย สาขาเขาช่องพราน
+`📊 [รายงานผลการดำเนินงานสาขา] เงินไชโย สาขาเขาช่องพราน
 ${periodTitle} (ข้อมูล ณ เวลา ${timeStamp24})
 -----------------------------------------
 👥 รับเรื่องลูกค้าทั้งหมด: ${totalCases.toLocaleString()} ราย
-💰 ยอดขอสินเชื่อรวม: ${totalAmount.toLocaleString()} บาท
-🎉 ปิดยอดอนุมัติสำเร็จ: ${approvedCount.toLocaleString()} ราย (${approvedAmount.toLocaleString()} บาท)
-📈 อัตราความสำเร็จ (Win Rate): ${winRate}%
+🎉 ปิดการขาย/อนุมัติสำเร็จ: ${approvedCount.toLocaleString()} ราย
+📈 อัตราความสำเร็จรวม (Win Rate): ${winRate}%
 
-🚗 จำแนกตามประเภทหลักประกัน:
-${vehicleBreakdownStr || '   - ยังไม่มีรายการ\n'}
-📌 สถานะการติดตามงาน:
+🚗 1. สินเชื่อจำนำทะเบียน & โฉนดที่ดิน:
+   - ลูกค้าขอสินเชื่อ: ${loanCases.toLocaleString()} ราย (ยอดขอกู้ ${loanAmount.toLocaleString()} บาท)
+   - ปิดยอดอนุมัติสำเร็จ: ${loanApproved.toLocaleString()} ราย (${loanApprovedAmount.toLocaleString()} บาท)
+   - จำแนกตามหลักประกัน:
+${vehicleBreakdownStr || '     - ยังไม่มีรายการ\n'}
+🛡️ 2. ประกันภัยรถยนต์ / พ.ร.บ. (Motor):
+   - ลูกค้าติดต่อขอซื้อ: ${motorCases.toLocaleString()} ราย
+   - ปิดการขายสำเร็จ: ${motorApproved.toLocaleString()} ราย
+   - ยอดเบี้ยประกันรวม: ${motorPrem.toLocaleString()} บาท
+
+🧡 3. ประกันชีวิต FWD (Non-motor / ผลิตภัณฑ์เสริม):
+   - ลูกค้าติดต่อขอซื้อ: ${fwdCases.toLocaleString()} ราย
+   - ปิดการขายสำเร็จ: ${fwdApproved.toLocaleString()} ราย
+   - ยอดเบี้ยประกันรวม: ${fwdPrem.toLocaleString()} บาท
+
+📌 สถานะการติดตามงานทั้งหมด:
    - นัดหมายเข้าสาขา: ${statusMap["นัดหมายเข้าสาขา"] || 0} ราย
    - รอครบ 90 วัน/พึ่งโอน: ${statusMap["ติดต่ออีกครั้ง (รอครบ 90 วัน/พึ่งโอน)"] || 0} ราย
-   - อนุมัติรับเงินแล้ว: ${statusMap["อนุมัติ/รับเงินแล้ว"] || 0} ราย
+   - อนุมัติรับเงิน/ออกกรมธรรม์แล้ว: ${statusMap["อนุมัติ/รับเงินแล้ว"] || 0} ราย
    - ไม่สนใจ/ไม่เข้าเงื่อนไข: ${(statusMap["ลูกค้าไม่สนใจ"] || 0) + (statusMap["ไม่เข้าเงื่อนไข"] || 0)} ราย
 -----------------------------------------
 💪 ทีมงานเงินไชโย สาขาเขาช่องพราน พร้อมลุยเต็มที่ครับ!`;
@@ -1406,7 +1741,10 @@ function openUpdateModal(id) {
   const item = customerDataList.find(c => String(c.id) === String(id));
   if (!item) return;
 
-  const vehicleDetail = [item.vehicleType, item.brand, item.model, item.licensePlate].filter(Boolean).join(" - ");
+  const isMotor = item.vehicleType === "ประกันภัยรถยนต์";
+  const isFwd = item.vehicleType === "ประกันชีวิต FWD";
+  const typeIcon = isMotor ? "🛡️" : (isFwd ? "🧡" : "🚗");
+  const vehicleDetail = [item.vehicleType, item.brand, item.model, item.licensePlate && item.licensePlate !== "-" ? item.licensePlate : null].filter(Boolean).join(" - ");
 
   const idEl = document.getElementById("modalCustId");
   const nameEl = document.getElementById("modalCustName");
@@ -1418,7 +1756,7 @@ function openUpdateModal(id) {
 
   if (idEl) idEl.value = item.id;
   if (nameEl) nameEl.textContent = `${item.name} (${item.phone})`;
-  if (vEl) vEl.textContent = `🚗 ${vehicleDetail}`;
+  if (vEl) vEl.textContent = `${typeIcon} ${vehicleDetail}`;
   if (amtEl) amtEl.value = item.amount || "";
   if (offEl) offEl.value = item.officer || "";
   if (noteEl) noteEl.value = item.note || "";
